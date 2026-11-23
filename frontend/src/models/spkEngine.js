@@ -12,22 +12,25 @@ export const METHOD_INFO = {
   saw: {
     id: 'saw',
     nama: 'SAW',
+    namaAwam: 'Penjumlahan Nilai (Disarankan)',
     namaLengkap: 'Simple Additive Weighting',
-    ringkas: 'Normalisasi linear terhadap nilai maksimum (benefit) atau minimum (cost), lalu dijumlahkan dengan bobot.',
+    ringkas: 'Membandingkan nilai tiap pelamar dengan nilai terbaik lalu mengalikan dengan bobot prioritas. Paling mudah dipahami untuk seleksi umum.',
     rumus: 'r_ij = x_ij / max(x_j) [benefit] | min(x_j) / x_ij [cost];  V_i = Σ (w_j × r_ij)',
   },
   wp: {
     id: 'wp',
     nama: 'WP',
+    namaAwam: 'Perkalian Berbobot',
     namaLengkap: 'Weighted Product',
-    ringkas: 'Perkalian antar nilai kriteria yang dipangkatkan bobot positif (benefit) atau negatif (cost), lalu dinormalisasi.',
+    ringkas: 'Menggabungkan nilai dengan perkalian berpangkat bobot. Pelamar yang punya satu nilai jauh tertinggal akan lebih mudah terlihat turun.',
     rumus: 'S_i = Π (x_ij ^ ±w_j) = exp(Σ (±w_j × ln(x_ij)));  V_i = S_i / Σ S_k',
   },
   topsis: {
     id: 'topsis',
     nama: 'TOPSIS',
+    namaAwam: 'Jarak ke Profil Ideal',
     namaLengkap: 'Technique for Order Preference by Similarity to Ideal Solution',
-    ringkas: 'Normalisasi Euclidean, mengukur jarak ke solusi ideal positif (A+) dan negatif (A-) untuk kedekatan relatif.',
+    ringkas: 'Mengukur seberapa dekat pelamar dengan profil ideal terbaik sekaligus seberapa jauh dari profil terburuk.',
     rumus: 'r_ij = x_ij / √Σx²;  y_ij = w_j × r_ij;  C_i = D-_i / (D+_i + D-_i)',
   },
 };
@@ -564,5 +567,14 @@ export function buildDecisionCsv(workspace, methodResult, activeMethod) {
   const lines = [header, ...rows].map((r) => r.map(esc).join(','));
   // Tambahkan UTF-8 BOM agar Excel di Windows membaca karakter dengan bersih.
   return `\uFEFF${lines.join('\r\n')}`;
+}
+
+export function getCandidateStrengths(altId, criteria, sawResult, limit = 2) {
+  const row = sawResult?.matrixR?.find((r) => r.id === altId);
+  if (!row || !Array.isArray(criteria) || criteria.length === 0) return [];
+  return [...criteria]
+    .map((c) => ({ nama: c.nama, kode: c.kode, norm: row.values[c.id] ?? 0 }))
+    .sort((a, b) => b.norm - a.norm)
+    .slice(0, limit);
 }
 

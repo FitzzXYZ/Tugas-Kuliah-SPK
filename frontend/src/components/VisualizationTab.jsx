@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { METHOD_INFO } from '../models/spkEngine.js';
+import CandidateRadarChart from './CandidateRadarChart.jsx';
 import { EmptyState } from './StateViews.jsx';
 
 export default function VisualizationTab({
@@ -30,9 +31,9 @@ export default function VisualizationTab({
     return (
       <section className="cut-panel">
         <EmptyState
-          title="Grafik belum tersedia"
-          description={calcError || 'Lengkapi data kriteria dan alternatif agar grafik perankingan dan profil kriteria dapat digambar.'}
-          actionLabel="Buka data dan kriteria"
+          title="Grafik belum dapat ditampilkan"
+          description={calcError || 'Isi data pelamar dan kriteria di tab Isi data agar grafik perbandingan dapat digambar.'}
+          actionLabel="Buka Isi data"
           onAction={onGoToData}
         />
       </section>
@@ -41,24 +42,20 @@ export default function VisualizationTab({
 
   const methodInfo = METHOD_INFO[activeMethod];
   const maxActiveScore = Math.max(...activeRankings.map((r) => r.score), 0.0001);
-  // Gunakan batas sumbu 1.0 untuk SAW/TOPSIS agar jujur terhadap rentang 0..1; untuk WP gunakan skala proporsional dari 0.
   const axisMax = activeMethod === 'wp' ? Math.ceil(maxActiveScore * 10) / 10 : 1.0;
 
-  // Dimensi Grafik 1 (Batang Horizontal Skor Peringkat)
   const rRowH = 42;
-  const rLabelW = 165;
-  const rBarW = 460;
+  const rLabelW = 170;
+  const rBarW = 450;
   const rSvgW = 720;
   const rSvgH = 34 + activeRankings.length * rRowH + 24;
   const gridSteps = [0, 0.25, 0.5, 0.75, 1];
 
-  // Dimensi Grafik 2 (Perbandingan Lintas Metode: SAW, WP ternormalisasi ke max=1 utk skala sejajar, TOPSIS)
   const comparison = calcResult.comparison;
   const wpMax = Math.max(...comparison.map((c) => c.wpScore), 0.0001);
   const cRowH = 54;
   const cSvgH = 26 + comparison.length * cRowH + 24;
 
-  // Dimensi Grafik 3 (Profil Kriteria Ternormalisasi SAW 0..100% antara 2 Kandidat)
   const sawMatrixR = Object.fromEntries(calcResult.saw.matrixR.map((row) => [row.id, row]));
   const rowA = sawMatrixR[compareA];
   const rowB = sawMatrixR[compareB];
@@ -69,43 +66,36 @@ export default function VisualizationTab({
     <section className="cut-panel">
       <div className="panel-head">
         <div className="panel-head-text">
-          <h2 className="panel-title">Grafik visualisasi hasil SPK</h2>
+          <h2 className="panel-title">Grafik perbandingan pelamar</h2>
           <p className="panel-subtitle">
-            Seluruh grafik dimulai dari sumbu nol dengan angka tabular tanpa dekorasi berlebih agar perbandingan antar kandidat terbaca objektif.
+            Bandingkan hasil secara visual. Batang yang lebih panjang selalu menunjukkan nilai yang lebih unggul.
           </p>
         </div>
         <div className="action-row">
           <button type="button" className="key key--primary" onClick={onNextTab}>
-            Susun laporan keputusan
+            Lanjut: Laporan
           </button>
         </div>
       </div>
 
       <div className="chart-grid">
-        {/* Grafik 1: Peringkat Metode Aktif */}
+        {/* Grafik 1 */}
         <div className="chart-block chart-block-full">
-          <h3 className="chart-title">Peringkat skor preferensi ({methodInfo.nama})</h3>
+          <h3 className="chart-title">Urutan nilai akhir pelamar ({methodInfo.nama})</h3>
           <p className="chart-caption">
-            Sumbu dimulai dari 0 hingga {axisMax.toFixed(2)}. Warna aksen cobalt menandai kandidat peringkat teratas.
+            Cara membaca: batang merah-mawar tua adalah pelamar peringkat pertama. Semua batang diukur dari angka 0 agar adil.
           </p>
           <svg
             className="svg-chart"
             viewBox={`0 0 ${rSvgW} ${rSvgH}`}
             role="img"
-            aria-label={`Grafik batang peringkat skor preferensi metode ${methodInfo.nama} untuk ${activeRankings.length} calon karyawan`}
+            aria-label={`Grafik urutan skor pelamar metode ${methodInfo.nama}`}
           >
             {gridSteps.map((ratio) => {
               const x = rLabelW + ratio * rBarW;
               return (
                 <g key={ratio}>
-                  <line
-                    x1={x}
-                    y1={14}
-                    x2={x}
-                    y2={rSvgH - 22}
-                    stroke="var(--color-rule)"
-                    strokeWidth="1"
-                  />
+                  <line x1={x} y1={14} x2={x} y2={rSvgH - 22} stroke="var(--color-rule)" strokeWidth="1" />
                   <text
                     x={x}
                     y={rSvgH - 6}
@@ -114,7 +104,7 @@ export default function VisualizationTab({
                     fontSize="11"
                     fontFamily="var(--font-outlier)"
                   >
-                    {(ratio * axisMax).toFixed(2)}
+                    {activeMethod === 'wp' ? (ratio * axisMax).toFixed(2) : `${Math.round(ratio * 100)}`}
                   </text>
                 </g>
               );
@@ -123,8 +113,12 @@ export default function VisualizationTab({
             {activeRankings.map((item, idx) => {
               const y = 24 + idx * rRowH;
               const width = Math.max(0, Math.min(1, item.score / axisMax)) * rBarW;
-              const label = `${item.kode} ${item.nama}`;
-              const shortLabel = label.length > 20 ? `${label.slice(0, 19)}…` : label;
+              const label = `${item.nama}`;
+              const shortLabel = label.length > 18 ? `${label.slice(0, 17)}…` : label;
+              const scoreLabel =
+                activeMethod === 'wp'
+                  ? `${(item.score * 100).toFixed(1)}%`
+                  : `${(item.score * 100).toFixed(1)} / 100`;
               return (
                 <g key={item.id} transform={`translate(0, ${y})`}>
                   <text
@@ -136,20 +130,15 @@ export default function VisualizationTab({
                   >
                     #{item.rank} {shortLabel}
                   </text>
+                  <rect x={rLabelW} y="2" width={rBarW} height="18" rx="2" fill="var(--color-chart-track)" />
                   <rect
-                    x={rLabelW}
-                    y="2"
-                    width={rBarW}
-                    height="18"
-                    rx="2"
-                    fill="var(--color-chart-track)"
-                  />
-                  <rect
+                    className="anim-bar"
+                    style={{ '--row-i': idx }}
                     x={rLabelW}
                     y="2"
                     width={width.toFixed(1)}
                     height="18"
-                    rx="2"
+                    rx="3"
                     fill={item.rank === 1 ? 'var(--color-chart-1)' : 'var(--color-chart-2)'}
                   />
                   <text
@@ -160,7 +149,7 @@ export default function VisualizationTab({
                     fontFamily="var(--font-outlier)"
                     fontWeight={item.rank === 1 ? '600' : '400'}
                   >
-                    {item.score.toFixed(4)}
+                    {scoreLabel}
                   </text>
                 </g>
               );
@@ -168,11 +157,11 @@ export default function VisualizationTab({
           </svg>
         </div>
 
-        {/* Grafik 2: Perbandingan 3 Metode (SAW, WP relatif, TOPSIS) */}
+        {/* Grafik 2 */}
         <div className="chart-block">
-          <h3 className="chart-title">Perbandingan 3 metode (SAW, WP, TOPSIS)</h3>
+          <h3 className="chart-title">Apakah urutan konsisten di 3 metode?</h3>
           <p className="chart-caption">
-            Skor WP diskalakan relatif terhadap kandidat tertinggi WP ({wpMax.toFixed(4)}) agar dapat dibaca pada rentang 0 sampai 1 bersama SAW dan TOPSIS.
+            Cara membaca: jika ketiga batang sama-sama panjang untuk satu pelamar, artinya pelamar tersebut kuat di semua metode hitung.
           </p>
           <div className="chart-legend" aria-hidden="true">
             <span className="legend-item">
@@ -181,7 +170,7 @@ export default function VisualizationTab({
             </span>
             <span className="legend-item">
               <span className="legend-swatch is-c2" />
-              WP (skala relatif)
+              WP (relatif)
             </span>
             <span className="legend-item">
               <span className="legend-swatch is-c3" />
@@ -192,10 +181,10 @@ export default function VisualizationTab({
             className="svg-chart"
             viewBox={`0 0 540 ${cSvgH}`}
             role="img"
-            aria-label="Grafik perbandingan skor metode SAW, WP, dan TOPSIS antar alternatif"
+            aria-label="Grafik konsistensi skor pelamar pada metode SAW, WP, dan TOPSIS"
           >
             {[0, 0.5, 1].map((ratio) => {
-              const x = 110 + ratio * 360;
+              const x = 115 + ratio * 345;
               return (
                 <g key={ratio}>
                   <line x1={x} y1={10} x2={x} y2={cSvgH - 22} stroke="var(--color-rule)" strokeWidth="1" />
@@ -207,7 +196,7 @@ export default function VisualizationTab({
                     fontSize="11"
                     fontFamily="var(--font-outlier)"
                   >
-                    {ratio.toFixed(1)}
+                    {Math.round(ratio * 100)}%
                   </text>
                 </g>
               );
@@ -215,23 +204,23 @@ export default function VisualizationTab({
 
             {comparison.map((row, idx) => {
               const y = 18 + idx * cRowH;
-              const wSaw = Math.max(0, Math.min(1, row.sawScore)) * 360;
-              const wWp = Math.max(0, Math.min(1, row.wpScore / wpMax)) * 360;
-              const wTopsis = Math.max(0, Math.min(1, row.topsisScore)) * 360;
+              const wSaw = Math.max(0, Math.min(1, row.sawScore)) * 345;
+              const wWp = Math.max(0, Math.min(1, row.wpScore / wpMax)) * 345;
+              const wTopsis = Math.max(0, Math.min(1, row.topsisScore)) * 345;
               return (
                 <g key={row.id} transform={`translate(0, ${y})`}>
                   <text x="0" y="14" fill="var(--color-ink)" fontSize="12" fontWeight="600">
+                    {row.nama.length > 14 ? `${row.nama.slice(0, 13)}…` : row.nama}
+                  </text>
+                  <text x="0" y="29" fill="var(--color-muted)" fontSize="11">
                     {row.kode}
                   </text>
-                  <text x="0" y="30" fill="var(--color-muted)" fontSize="11">
-                    {row.nama.length > 13 ? `${row.nama.slice(0, 12)}…` : row.nama}
-                  </text>
 
-                  <rect x="110" y="2" width={wSaw.toFixed(1)} height="9" rx="1.5" fill="var(--color-chart-1)" />
-                  <rect x="110" y="14" width={wWp.toFixed(1)} height="9" rx="1.5" fill="var(--color-chart-2)" />
-                  <rect x="110" y="26" width={wTopsis.toFixed(1)} height="9" rx="1.5" fill="var(--color-chart-3)" />
+                  <rect x="115" y="2" width={wSaw.toFixed(1)} height="9" rx="1.5" fill="var(--color-chart-1)" />
+                  <rect x="115" y="14" width={wWp.toFixed(1)} height="9" rx="1.5" fill="var(--color-chart-2)" />
+                  <rect x="115" y="26" width={wTopsis.toFixed(1)} height="9" rx="1.5" fill="var(--color-chart-3)" />
 
-                  <text x="480" y="22" fill="var(--color-muted)" fontSize="11" fontFamily="var(--font-outlier)">
+                  <text x="470" y="22" fill="var(--color-muted)" fontSize="11" fontFamily="var(--font-outlier)">
                     #{row.sawRank}/{row.wpRank}/{row.topsisRank}
                   </text>
                 </g>
@@ -240,55 +229,59 @@ export default function VisualizationTab({
           </svg>
         </div>
 
-        {/* Grafik 3: Profil Skor per Kriteria antara 2 Kandidat */}
+        {/* Grafik 3 */}
         <div className="chart-block">
-          <h3 className="chart-title">Profil keunggulan per kriteria</h3>
+          <h3 className="chart-title">Bandingkan 2 pelamar secara langsung</h3>
           <p className="chart-caption">
-            Nilai ternormalisasi per kriteria (0% sampai 100%, sudah memperhitungkan arah benefit dan cost).
+            Cara membaca: 100% berarti terbaik di antara seluruh pelamar untuk syarat tersebut (gaji lebih hemat juga bernilai lebih tinggi).
           </p>
 
-          <div className="toolbar-controls" style={{ marginBottom: 'var(--space-sm)' }}>
-            <label className="visually-hidden" htmlFor="cmp-a">
-              Kandidat pertama
-            </label>
-            <select
-              id="cmp-a"
-              className="select"
-              value={compareA}
-              onChange={(e) => setCompareA(e.target.value)}
-            >
-              {alternatives.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.kode} {a.nama}
-                </option>
-              ))}
-            </select>
+          <div className="form-grid" style={{ marginBottom: 'var(--space-sm)' }}>
+            <div className="field">
+              <label className="field-label" htmlFor="cmp-a">
+                Pelamar pertama
+              </label>
+              <select
+                id="cmp-a"
+                className="select"
+                value={compareA}
+                onChange={(e) => setCompareA(e.target.value)}
+              >
+                {alternatives.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nama} ({a.kode})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <label className="visually-hidden" htmlFor="cmp-b">
-              Kandidat kedua
-            </label>
-            <select
-              id="cmp-b"
-              className="select"
-              value={compareB}
-              onChange={(e) => setCompareB(e.target.value)}
-            >
-              {alternatives.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.kode} {a.nama}
-                </option>
-              ))}
-            </select>
+            <div className="field">
+              <label className="field-label" htmlFor="cmp-b">
+                Pelamar pembanding
+              </label>
+              <select
+                id="cmp-b"
+                className="select"
+                value={compareB}
+                onChange={(e) => setCompareB(e.target.value)}
+              >
+                {alternatives.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nama} ({a.kode})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="chart-legend" aria-hidden="true">
             <span className="legend-item">
               <span className="legend-swatch is-c1" />
-              {rowA ? `${rowA.kode} ${rowA.nama}` : 'Kandidat A'}
+              {rowA ? rowA.nama : 'Pelamar 1'}
             </span>
             <span className="legend-item">
               <span className="legend-swatch is-c2" />
-              {rowB ? `${rowB.kode} ${rowB.nama}` : 'Kandidat B'}
+              {rowB ? rowB.nama : 'Pelamar 2'}
             </span>
           </div>
 
@@ -296,25 +289,25 @@ export default function VisualizationTab({
             className="svg-chart"
             viewBox={`0 0 540 ${pSvgH}`}
             role="img"
-            aria-label="Grafik perbandingan profil skor per kriteria antara dua kandidat pilihan"
+            aria-label="Grafik perbandingan keunggulan per syarat antara dua pelamar"
           >
             {criteria.map((c, idx) => {
               const y = 14 + idx * pRowH;
               const valA = rowA ? rowA.values[c.id] : 0;
               const valB = rowB ? rowB.values[c.id] : 0;
-              const barW = 310;
+              const barW = 300;
               return (
                 <g key={c.id} transform={`translate(0, ${y})`}>
                   <text x="0" y="14" fill="var(--color-ink)" fontSize="12" fontWeight="600">
-                    {c.kode} ({c.tipe})
-                  </text>
-                  <text x="0" y="29" fill="var(--color-muted)" fontSize="11">
                     {c.nama.length > 18 ? `${c.nama.slice(0, 17)}…` : c.nama}
                   </text>
+                  <text x="0" y="29" fill="var(--color-muted)" fontSize="11">
+                    {c.tipe === 'cost' ? 'Lebih hemat lebih baik' : 'Lebih tinggi lebih baik'}
+                  </text>
 
-                  <rect x="145" y="2" width={barW} height="11" rx="1.5" fill="var(--color-chart-track)" />
+                  <rect x="155" y="2" width={barW} height="11" rx="1.5" fill="var(--color-chart-track)" />
                   <rect
-                    x="145"
+                    x="155"
                     y="2"
                     width={(valA * barW).toFixed(1)}
                     height="11"
@@ -325,9 +318,9 @@ export default function VisualizationTab({
                     {Math.round(valA * 100)}%
                   </text>
 
-                  <rect x="145" y="17" width={barW} height="11" rx="1.5" fill="var(--color-chart-track)" />
+                  <rect x="155" y="17" width={barW} height="11" rx="1.5" fill="var(--color-chart-track)" />
                   <rect
-                    x="145"
+                    x="155"
                     y="17"
                     width={(valB * barW).toFixed(1)}
                     height="11"
@@ -342,8 +335,23 @@ export default function VisualizationTab({
             })}
           </svg>
         </div>
+
+        {/* Grafik 4: Diagram Radar Profil Pelamar vs Rata-rata */}
+        <div className="chart-block chart-block-full">
+          <h3 className="chart-title">
+            Peta kekuatan menyeluruh: {rowA ? rowA.nama : 'Pelamar pilihan'} vs rata-rata pelamar
+          </h3>
+          <p className="chart-caption">
+            Cara membaca: makin luas area berwarna rose dibanding garis putus-putus, makin unggul pelamar di syarat tersebut. Ganti Pelamar pertama di atas untuk mengubah peta ini.
+          </p>
+          <CandidateRadarChart
+            criteria={criteria}
+            sawResult={calcResult.saw}
+            candidateId={compareA}
+            candidateName={rowA ? rowA.nama : ''}
+          />
+        </div>
       </div>
     </section>
   );
 }
-

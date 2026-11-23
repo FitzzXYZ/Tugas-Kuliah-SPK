@@ -36,9 +36,9 @@ export default function ReportTab({
     return (
       <section className="cut-panel">
         <EmptyState
-          title="Laporan belum dapat dibuat"
-          description={calcError || 'Lengkapi data kriteria dan alternatif terlebih dahulu sebelum menyusun laporan hasil keputusan.'}
-          actionLabel="Buka data dan kriteria"
+          title="Laporan belum siap dibuat"
+          description={calcError || 'Lengkapi data pelamar dan kriteria terlebih dahulu di halaman Isi data.'}
+          actionLabel="Buka Isi data"
           onAction={onGoToData}
         />
       </section>
@@ -59,7 +59,7 @@ export default function ReportTab({
   function handleExportCsv() {
     const csv = buildDecisionCsv(workspace, activeData, activeMethod);
     triggerDownload(`laporan-spk-${activeMethod}.csv`, csv, 'text/csv;charset=utf-8');
-    onExportSuccess(`Laporan CSV (${methodInfo.nama}) berhasil diunduh.`);
+    onExportSuccess(`Berkas Excel (CSV) untuk metode ${methodInfo.nama} berhasil diunduh.`);
   }
 
   function handleExportJson() {
@@ -86,7 +86,7 @@ export default function ReportTab({
       JSON.stringify(payload, null, 2),
       'application/json;charset=utf-8',
     );
-    onExportSuccess(`Laporan JSON (${methodInfo.nama}) berhasil diunduh.`);
+    onExportSuccess(`Berkas arsip JSON (${methodInfo.nama}) berhasil diunduh.`);
   }
 
   const lanjutList = workspace.alternatives.filter((a) => a.keputusan === 'lanjut');
@@ -95,22 +95,21 @@ export default function ReportTab({
 
   return (
     <div className="stack-lg">
-      {/* Kontrol Laporan (disembunyikan saat cetak PDF) */}
       <section className="cut-panel no-print">
         <div className="panel-head">
           <div className="panel-head-text">
-            <h2 className="panel-title">Pengaturan dan ekspor laporan keputusan</h2>
+            <h2 className="panel-title">Cetak atau unduh laporan keputusan</h2>
             <p className="panel-subtitle">
-              Lengkapi identitas laporan di bawah, lalu cetak ke PDF atau unduh berkas CSV dan JSON sebagai dokumentasi hasil seleksi.
+              Halaman ini merangkum seluruh kriteria, urutan pelamar, dan keputusan Anda ke dalam satu dokumen siap cetak (PDF) atau dibuka di Excel (CSV).
             </p>
           </div>
           <div className="action-row">
             <button type="button" className="key" onClick={onReviewWeights}>
-              Tinjau ulang bobot
+              Ubah prioritas
             </button>
             <button type="button" className="key" onClick={handleExportCsv}>
               <IconDownload />
-              <span>Unduh CSV</span>
+              <span>Unduh Excel (CSV)</span>
             </button>
             <button type="button" className="key" onClick={handleExportJson}>
               <IconDownload />
@@ -118,7 +117,7 @@ export default function ReportTab({
             </button>
             <button type="button" className="key key--primary" onClick={() => window.print()}>
               <IconPrint />
-              <span>Cetak / Simpan PDF</span>
+              <span>Cetak / PDF</span>
             </button>
           </div>
         </div>
@@ -126,7 +125,7 @@ export default function ReportTab({
         <div className="form-grid">
           <div className="field">
             <label className="field-label" htmlFor="meta-judul">
-              Judul seleksi
+              Judul laporan seleksi
             </label>
             <input
               id="meta-judul"
@@ -138,7 +137,7 @@ export default function ReportTab({
           </div>
           <div className="field">
             <label className="field-label" htmlFor="meta-pic">
-              Penanggung jawab keputusan
+              Nama pengelola / pewawancara
             </label>
             <input
               id="meta-pic"
@@ -150,7 +149,7 @@ export default function ReportTab({
           </div>
           <div className="field field-full">
             <label className="field-label" htmlFor="meta-catatan">
-              Catatan umum laporan
+              Keterangan tambahan laporan
             </label>
             <input
               id="meta-catatan"
@@ -163,7 +162,6 @@ export default function ReportTab({
         </div>
       </section>
 
-      {/* Lembar Laporan Hasil Keputusan (Siap Cetak) */}
       <article className="cut-panel">
         <div className="panel-head">
           <div className="panel-head-text">
@@ -184,13 +182,13 @@ export default function ReportTab({
             <dd>{workspace.metadata?.penanggungJawab || '-'}</dd>
           </div>
           <div>
-            <dt>Metode SPK aktif</dt>
+            <dt>Cara hitung yang dipakai</dt>
             <dd>
               {methodInfo.nama} ({methodInfo.namaLengkap})
             </dd>
           </div>
           <div>
-            <dt>Ringkasan ketetapan pengelola</dt>
+            <dt>Ringkasan pilihan pengelola</dt>
             <dd>
               {lanjutList.length} lanjut wawancara akhir, {cadanganList.length} cadangan
             </dd>
@@ -208,16 +206,16 @@ export default function ReportTab({
 
         <div className="stack-lg">
           <div>
-            <h3 style={{ marginBottom: 'var(--space-sm)' }}>1. Kriteria dan bobot yang digunakan</h3>
+            <h3 style={{ marginBottom: 'var(--space-sm)' }}>1. Daftar kriteria dan bobot prioritas</h3>
             <div className="table-scroll">
               <table className="ledger-table">
                 <thead>
                   <tr>
                     <th>Kode</th>
-                    <th>Nama kriteria</th>
-                    <th>Tipe</th>
+                    <th>Syarat penilaian</th>
+                    <th>Arah nilai</th>
                     <th className="col-num">Bobot input</th>
-                    <th className="col-num">Bobot ternormalisasi (w)</th>
+                    <th className="col-num">Porsi akhir</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -225,9 +223,9 @@ export default function ReportTab({
                     <tr key={w.id}>
                       <td className="col-code">{w.kode}</td>
                       <td>{w.nama}</td>
-                      <td>{w.tipe === 'benefit' ? 'Benefit' : 'Cost'}</td>
+                      <td>{w.tipe === 'benefit' ? 'Makin besar makin baik' : 'Makin kecil makin baik'}</td>
                       <td className="col-num">{w.raw}%</td>
-                      <td className="col-num">{w.weight.toFixed(4)}</td>
+                      <td className="col-num">{w.percent.toFixed(1)}%</td>
                     </tr>
                   ))}
                 </tbody>
@@ -237,18 +235,18 @@ export default function ReportTab({
 
           <div>
             <h3 style={{ marginBottom: 'var(--space-sm)' }}>
-              2. Hasil perankingan ({methodInfo.nama}) dan ketetapan pengelola
+              2. Urutan hasil peringkat ({methodInfo.nama}) dan keputusan akhir
             </h3>
             <div className="table-scroll">
               <table className="ledger-table">
                 <thead>
                   <tr>
-                    <th className="col-num">Peringkat</th>
+                    <th className="col-num">Urutan</th>
                     <th>Calon karyawan</th>
                     <th className="col-num">Skor {methodInfo.nama}</th>
                     <th className="col-num">SAW / WP / TOPSIS</th>
-                    <th>Keputusan pengelola</th>
-                    <th>Catatan manusia</th>
+                    <th>Keputusan akhir</th>
+                    <th>Catatan pertimbangan</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -260,7 +258,7 @@ export default function ReportTab({
                         <td className="col-num">#{item.rank}</td>
                         <td>
                           <span className="cell-primary">
-                            {alt.kode} {alt.nama}
+                            {alt.nama} ({alt.kode})
                           </span>
                           <span className="cell-secondary">{alt.posisi}</span>
                         </td>
@@ -280,7 +278,7 @@ export default function ReportTab({
 
           <div>
             <h3 style={{ marginBottom: 'var(--space-sm)' }}>
-              3. Pemeriksaan kualitas data, asumsi, dan tanggung jawab manusia (MSS)
+              3. Daftar periksa akhir sebelum keputusan dijalankan
             </h3>
             <ul className="checklist">
               <li className="checklist-row">
@@ -291,7 +289,7 @@ export default function ReportTab({
                   onChange={(e) => onToggleChecklist('dataValid', e.target.checked)}
                 />
                 <label htmlFor="rep-chk-data">
-                  <strong>Data benar dan relevan:</strong> seluruh nilai tes, pengalaman, dan ekspektasi gaji pelamar telah diperiksa kelengkapannya.
+                  <strong>Data pelamar sudah dicek:</strong> angka tes, pengalaman, dan gaji sudah sesuai dokumen asli.
                 </label>
               </li>
               <li className="checklist-row">
@@ -302,7 +300,7 @@ export default function ReportTab({
                   onChange={(e) => onToggleChecklist('asumsiSesuai', e.target.checked)}
                 />
                 <label htmlFor="rep-chk-asumsi">
-                  <strong>Bobot dan metode sesuai kebutuhan lapangan:</strong> prioritas kriteria mencerminkan kondisi posisi saat ini, dan sensitivitas hasil lintas SAW, WP, serta TOPSIS sudah ditinjau.
+                  <strong>Prioritas sudah sesuai kebutuhan tim:</strong> pembagian bobot dan hasil perbandingan sudah ditinjau bersama pengelola.
                 </label>
               </li>
               <li className="checklist-row">
@@ -313,14 +311,14 @@ export default function ReportTab({
                   onChange={(e) => onToggleChecklist('privasiTerjaga', e.target.checked)}
                 />
                 <label htmlFor="rep-chk-privasi">
-                  <strong>Privasi data pribadi terjaga:</strong> informasi pelamar hanya diakses dan dibagikan kepada pihak pengelola yang berwenang.
+                  <strong>Kerahasiaan data pelamar dijaga:</strong> data gaji dan catatan wawancara hanya dibagikan kepada pihak berwenang.
                 </label>
               </li>
             </ul>
             <p className="panel-subtitle" style={{ marginTop: 'var(--space-sm)' }}>
               {allChecked
-                ? 'Seluruh poin verifikasi telah ditandai. Laporan siap dicetak atau diarsipkan.'
-                : 'Sistem menyajikan hasil analisis; keputusan final menjadi tanggung jawab pengelola setelah pemeriksaan di atas selesai.'}
+                ? 'Seluruh daftar periksa sudah ditandai. Laporan siap dicetak atau disimpan.'
+                : 'Sistem hanya membantu menghitung; keputusan akhir tetap menjadi tanggung jawab pengelola.'}
             </p>
           </div>
         </div>
@@ -328,4 +326,3 @@ export default function ReportTab({
     </div>
   );
 }
-

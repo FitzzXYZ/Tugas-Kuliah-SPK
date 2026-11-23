@@ -1,53 +1,63 @@
-/* Hallmark · shape: app screen · genre: modern-minimal · theme: Cobalt · dealt: 3/3, seed spk-seleksi-calon-karyawan-e1bf·e395001e·2026-11-23·r0 · posture: restrained · data: sample · v2.0.0 */
-/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V4 · weakest: V, five-tab app shell keeps cobalt keycap tray and graphite calculation audit ledger distinct from stock dashboards */
+/* Hallmark · shape: app screen · genre: modern-minimal · theme: custom (Shades of Pink Editorial) · posture: restrained · data: sample · v2.0.0 */
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 · custom Shades of Pink OKLCH palette (Rouge, Fandango, Mulberry, Wild Orchid, Pink Pearl, Lace, Neon Pink on dark berry) paired with GPU-only staggered animations */
 
 :root {
-  /* Paper & neutral ladder (Cobalt OKLCH, hue 250-262) */
-  --color-paper: oklch(98.6% 0.005 250);
-  --color-paper-2: oklch(96.2% 0.008 252);
-  --color-paper-3: oklch(92.8% 0.011 252);
-  --color-ink: oklch(21% 0.028 262);
-  --color-ink-2: oklch(36% 0.022 260);
-  --color-muted: oklch(46% 0.018 258);
-  --color-rule: oklch(89.5% 0.009 252);
-  --color-rule-2: oklch(72% 0.015 254);
+  /* Layered OKLCH executive Shades of Pink surfaces (calm editorial rose-neutral paper) */
+  --color-canvas: oklch(97.0% 0.010 344);
+  --color-paper: oklch(99.3% 0.004 344);
+  --color-paper-2: oklch(95.4% 0.016 343);
+  --color-paper-3: oklch(91.6% 0.028 342);
+  --color-backdrop: oklch(16% 0.04 344 / 0.48);
 
-  /* Graphite dark panel for live calculation audit ledger */
-  --color-graphite: oklch(21% 0.024 262);
-  --color-graphite-2: oklch(26.5% 0.026 262);
-  --color-graphite-rule: oklch(34% 0.022 260);
-  --color-graphite-ink: oklch(93.5% 0.010 250);
-  --color-graphite-muted: oklch(75% 0.020 256);
+  /* Ink & hairline rules (Deep Berry & Raspberry Glace #915F6D / Puce #CC8899) */
+  --color-ink: oklch(21.5% 0.044 348);
+  --color-ink-2: oklch(38% 0.050 347);
+  --color-muted: oklch(47.5% 0.048 347);
+  --color-rule: oklch(88% 0.030 343);
+  --color-rule-2: oklch(72% 0.054 345);
 
-  /* Single Cobalt accent */
-  --color-accent: oklch(49% 0.19 258);
-  --color-accent-2: oklch(76% 0.13 254);
-  --color-accent-wash: oklch(95% 0.028 256);
-  --color-accent-ink: oklch(98.6% 0.005 250);
-  --color-accent-deep: oklch(42% 0.2 262);
-  --color-accent-edge: oklch(37% 0.16 260);
-  --color-focus: oklch(49% 0.19 258);
+  /* Deep velvet plum-berry dark surface (Executive Command Band & Calculation Audit Ledger) */
+  --color-graphite: oklch(19.5% 0.056 344);
+  --color-graphite-2: oklch(25% 0.064 344);
+  --color-graphite-cell: oklch(32% 0.058 344);
+  --color-graphite-dot: oklch(38.5% 0.068 342);
+  --color-graphite-rule: oklch(34.5% 0.058 344);
+  --color-graphite-ink: oklch(96.5% 0.014 342);
+  --color-graphite-muted: oklch(81% 0.052 341);
+  --color-graphite-sheen: oklch(86% 0.11 338 / 0.16);
 
-  /* Keycap material */
-  --color-key-face: oklch(99.2% 0.004 250);
-  --color-key-edge: oklch(79% 0.016 254);
+  /* Signature Rose-Berry Accent (Fandango #B53389 / Mulberry #C54B8C / Rouge #A94064 / Neon Pink #FF6EC7) */
+  --color-accent: oklch(48.5% 0.195 344);
+  --color-accent-2: oklch(77% 0.185 338);
+  --color-accent-wash: oklch(94.6% 0.042 341);
+  --color-accent-wash-2: oklch(90.6% 0.068 340);
+  --color-accent-ink: oklch(99% 0.005 344);
+  --color-accent-deep: oklch(41.5% 0.185 346);
+  --color-accent-edge: oklch(34.5% 0.155 348);
+  --color-focus: oklch(48.5% 0.195 344);
 
-  /* Semantic feedback (OKLCH, high contrast, paired with icon) */
-  --color-pass: oklch(40% 0.12 152);
-  --color-pass-bg: oklch(95.5% 0.022 152);
-  --color-pass-rule: oklch(82% 0.055 152);
-  --color-warn: oklch(44% 0.13 55);
-  --color-warn-bg: oklch(96% 0.024 65);
-  --color-warn-rule: oklch(84% 0.06 60);
-  --color-error: oklch(45% 0.17 24);
-  --color-error-bg: oklch(96% 0.022 22);
-  --color-error-rule: oklch(82% 0.07 24);
+  /* Keycap tactile material */
+  --color-key-face: oklch(99.3% 0.004 344);
+  --color-key-edge: oklch(79% 0.038 344);
 
-  /* Chart ramp (single-hue cobalt lightness ramp + neutral track) */
-  --color-chart-1: oklch(49% 0.19 258);
-  --color-chart-2: oklch(63% 0.14 256);
-  --color-chart-3: oklch(76% 0.09 254);
-  --color-chart-track: oklch(92% 0.010 252);
+  /* Semantic feedback (high contrast, harmonized with rose paper) */
+  --color-pass: oklch(39% 0.115 154);
+  --color-pass-bg: oklch(95.5% 0.022 154);
+  --color-pass-rule: oklch(81% 0.052 154);
+  --color-warn: oklch(45% 0.13 52);
+  --color-warn-bg: oklch(96% 0.025 60);
+  --color-warn-rule: oklch(83% 0.06 58);
+  --color-error: oklch(44% 0.175 18);
+  --color-error-bg: oklch(96% 0.024 18);
+  --color-error-rule: oklch(81% 0.07 18);
+
+  /* Chart ramp: 5 shades directly from user's Shades of Pink palette */
+  --color-chart-1: oklch(48.5% 0.195 344); /* Fandango / Mulberry */
+  --color-chart-2: oklch(57% 0.155 346);   /* Rouge / Turkish Rose */
+  --color-chart-3: oklch(66.5% 0.14 341);  /* Wild Orchid */
+  --color-chart-4: oklch(75.5% 0.095 343); /* Puce / Pink Pearl */
+  --color-chart-5: oklch(84.5% 0.072 339); /* Light Hot Pink / Lace */
+  --color-chart-track: oklch(91.5% 0.028 343);
 
   /* Typography */
   --font-display: "Familjen Grotesk", system-ui, -apple-system, sans-serif;
@@ -55,6 +65,7 @@
   --font-outlier: "JetBrains Mono", ui-monospace, Consolas, monospace;
 
   --tracking-display: -0.028em;
+  --tracking-hero: -0.036em;
   --display-weight: 600;
 
   --text-xs: 0.8125rem;
@@ -62,40 +73,46 @@
   --text-md: 1rem;
   --text-lg: 1.1875rem;
   --text-xl: 1.4375rem;
-  --text-2xl: 1.75rem;
+  --text-2xl: 1.875rem;
   --text-figure: 2.125rem;
+  --text-hero-figure: 4rem;
 
-  /* Spacing scale */
+  /* Spacing scale (4px ladder) */
   --space-3xs: 0.125rem;
   --space-2xs: 0.25rem;
   --space-xs: 0.5rem;
   --space-sm: 0.75rem;
   --space-md: 1rem;
   --space-lg: 1.5rem;
-  --space-xl: 2.5rem;
-  --space-2xl: 4rem;
+  --space-xl: 2.25rem;
+  --space-2xl: 3.5rem;
 
   /* Radii & geometry */
-  --radius-card: 8px;
-  --radius-input: 6px;
+  --radius-card: 10px;
+  --radius-input: 7px;
   --cut: 8px;
-  --cut-l: 14px;
+  --cut-l: 16px;
   --rule-hair: 1px;
   --container-max: 78rem;
+  --sidebar-w: 16rem;
 
-  /* Shadows */
-  --shadow-card: 0 1px 2px oklch(21% 0.028 262 / 0.06);
-  --shadow-key: 0 3px 0 0 var(--color-key-edge),
-    0 5px 8px -4px oklch(21% 0.028 262 / 0.22),
-    inset 0 1px 0 oklch(99.5% 0.002 250 / 0.9);
-  --shadow-key-accent: 0 3px 0 0 var(--color-accent-edge),
-    0 5px 8px -4px oklch(30% 0.12 260 / 0.4),
-    inset 0 1px 0 oklch(99.5% 0.002 250 / 0.22);
-  --shadow-key-press: inset 0 1px 2px oklch(21% 0.028 262 / 0.16);
+  /* Shadows tinted subtly toward berry ink */
+  --shadow-card: 0 1px 2px oklch(22% 0.044 348 / 0.05),
+    0 6px 14px -6px oklch(22% 0.044 348 / 0.08);
+  --shadow-hero: 0 2px 4px oklch(15% 0.050 344 / 0.2),
+    0 12px 20px -10px oklch(15% 0.050 344 / 0.34);
+  --shadow-key: 0 2px 0 0 var(--color-key-edge),
+    0 4px 6px -3px oklch(22% 0.044 348 / 0.18),
+    inset 0 1px 0 oklch(99.5% 0.003 344 / 0.92);
+  --shadow-key-accent: 0 2px 0 0 var(--color-accent-edge),
+    0 4px 8px -3px oklch(34% 0.15 346 / 0.38),
+    inset 0 1px 0 oklch(99.5% 0.005 344 / 0.24);
+  --shadow-key-press: inset 0 1px 2px oklch(22% 0.044 348 / 0.16);
 
   /* Motion */
   --dur-micro: 120ms;
-  --dur-short: 200ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
 
   /* Z-index layers */
@@ -103,5 +120,5 @@
   --z-raised: 10;
   --z-sticky: 200;
   --z-sticky-nav: 300;
+  --z-modal: 400;
 }
-

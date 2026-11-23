@@ -9,6 +9,7 @@ import {
   calculateTOPSIS,
   calculateWP,
   detectDataIssues,
+  getCandidateStrengths,
   normalizeCriteriaWeightsTo100,
   syncAlternativesWithCriteria,
   validateAlternative,
@@ -108,5 +109,9 @@ test('buildDecisionCsv generates valid BOM-prefixed CSV with headers and rows', 
   const csv = buildDecisionCsv(SAMPLE_WORKSPACE, saw, 'saw');
   assert.ok(csv.startsWith('\uFEFFPeringkat,Kode,Nama Calon Karyawan'));
   assert.equal(csv.split('\r\n').length, 7);
+
+  const strengths = getCandidateStrengths('a6', criteria, saw, 2);
+  assert.equal(strengths.length, 2);
+  assert.equal(strengths[0].norm, 1);
 });
 

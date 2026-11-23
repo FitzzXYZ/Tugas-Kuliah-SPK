@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import AppShell, { TABS } from './components/AppShell.jsx';
 import CalculationRankingTab from './components/CalculationRankingTab.jsx';
+import CandidateDrawer from './components/CandidateDrawer.jsx';
+import DashboardTab from './components/DashboardTab.jsx';
 import DataManagementTab from './components/DataManagementTab.jsx';
-import HeaderTray, { TABS } from './components/HeaderTray.jsx';
 import ReportTab from './components/ReportTab.jsx';
 import { LoadingSkeleton, StatusBanner } from './components/StateViews.jsx';
 import VisualizationTab from './components/VisualizationTab.jsx';
@@ -23,7 +25,7 @@ const VALID_TAB_IDS = new Set(TABS.map((t) => t.id));
 
 function readTabFromHash() {
   const raw = window.location.hash.replace(/^#/, '');
-  return VALID_TAB_IDS.has(raw) ? raw : 'data';
+  return VALID_TAB_IDS.has(raw) ? raw : 'dashboard';
 }
 
 export default function App() {
@@ -34,12 +36,16 @@ export default function App() {
   const [calcError, setCalcError] = useState('');
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState(null);
+  const [inspectedId, setInspectedId] = useState(null);
+  const [quickAddSignal, setQuickAddSignal] = useState(0);
+  const [requestedEdit, setRequestedEdit] = useState({ id: null, seq: 0 });
   const [checklist, setChecklist] = useState({
     dataValid: false,
     asumsiSesuai: false,
     privasiTerjaga: false,
   });
 
+  const undoSnapshotRef = useRef(null);
   const connection = getApiConnection();
 
   const loadAll = useCallback(async () => {
@@ -71,7 +77,6 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
-  // Proses perhitungan otomatis setiap alternatif atau kriteria/bobot berubah.
   useEffect(() => {
     if (!workspace) return;
     let cancelled = false;
@@ -110,10 +115,18 @@ export default function App() {
     } catch (err) {
       setBanner({
         type: 'error',
-        message: err.message || 'Perubahan gagal disimpan ke backend.',
+        message: err.message || 'Perubahan gagal disimpan ke server.',
         retryable: true,
       });
     }
+  }
+
+  function handleUndo() {
+    if (!undoSnapshotRef.current) return;
+    const restored = undoSnapshotRef.current;
+    undoSnapshotRef.current = null;
+    persistNext(restored);
+    setBanner({ type: 'pass', message: 'Perubahan terakhir berhasil dikembalikan.' });
   }
 
   function handleAddCriterion(crit) {
@@ -134,9 +147,16 @@ export default function App() {
 
   function handleDeleteCriterion(id) {
     if (workspace.criteria.length <= 1) return;
+    const target = workspace.criteria.find((c) => c.id === id);
+    undoSnapshotRef.current = structuredClone(workspace);
     const nextCriteria = workspace.criteria.filter((c) => c.id !== id);
     const nextAlternatives = syncAlternativesWithCriteria(workspace.alternatives, nextCriteria);
     persistNext({ ...workspace, criteria: nextCriteria, alternatives: nextAlternatives });
+    setBanner({
+      type: 'warn',
+      message: `Kriteria "${target?.nama || id}" dihapus dari penilaian.`,
+      undoable: true,
+    });
   }
 
   function handleAddAlternative(alt) {
@@ -152,8 +172,16 @@ export default function App() {
   }
 
   function handleDeleteAlternative(id) {
+    const target = workspace.alternatives.find((a) => a.id === id);
+    undoSnapshotRef.current = structuredClone(workspace);
     const nextAlternatives = workspace.alternatives.filter((a) => a.id !== id);
+    if (inspectedId === id) setInspectedId(null);
     persistNext({ ...workspace, alternatives: nextAlternatives });
+    setBanner({
+      type: 'warn',
+      message: `Pelamar "${target?.nama || id}" dihapus dari daftar.`,
+      undoable: true,
+    });
   }
 
   function handleChangeWeight(criterionId, bobot) {
@@ -165,6 +193,15 @@ export default function App() {
 
   function handleNormalizeWeights() {
     const nextCriteria = normalizeCriteriaWeightsTo100(workspace.criteria);
+    persistNext({ ...workspace, criteria: nextCriteria });
+  }
+
+  function handleApplyPreset(byCode) {
+    const updated = workspace.criteria.map((c) => {
+      const target = byCode[c.kode.toUpperCase()];
+      return target ? { ...c, bobot: target } : c;
+    });
+    const nextCriteria = normalizeCriteriaWeightsTo100(updated);
     persistNext({ ...workspace, criteria: nextCriteria });
   }
 
@@ -183,60 +220,93 @@ export default function App() {
   }
 
   async function handleResetWorkspace() {
-    if (!window.confirm('Kembalikan seluruh kriteria dan calon karyawan ke data ilustrasi awal?')) {
-      return;
-    }
+    undoSnapshotRef.current = structuredClone(workspace);
     try {
       const seed = await resetWorkspace();
       setWorkspace(seed);
+      setInspectedId(null);
       setBanner({
         type: 'pass',
-        message: 'Data ilustrasi pembelajaran berhasil dimuat ulang.',
+        message: 'Data contoh awal dimuat ulang.',
+        undoable: true,
       });
     } catch (err) {
       setBanner({
         type: 'error',
-        message: err.message || 'Gagal mereset data ilustrasi.',
+        message: err.message || 'Gagal memuat ulang data contoh.',
       });
     }
   }
 
+  function handleQuickAddCandidate() {
+    selectTab('data');
+    setQuickAddSignal((n) => n + 1);
+  }
+
+  function handleRequestEditCandidate(altId) {
+    selectTab('data');
+    setRequestedEdit((prev) => ({ id: altId, seq: prev.seq + 1 }));
+  }
+
   const weightSummary = getWeightSummary(workspace?.criteria || []);
+  const inspectedCandidate =
+    inspectedId && workspace
+      ? workspace.alternatives.find((a) => a.id === inspectedId) || null
+      : null;
 
   return (
     <>
-      <HeaderTray
+      <AppShell
         activeTab={activeTab}
         onSelectTab={selectTab}
+        activeMethod={activeMethod}
+        onSelectMethod={setActiveMethod}
+        judulSeleksi={workspace?.metadata?.judulSeleksi || ''}
         altCount={workspace?.alternatives?.length || 0}
         critCount={workspace?.criteria?.length || 0}
         weightTotal={weightSummary.rawTotal}
         isExact100={weightSummary.isExact100}
-        connectionLabel={connection.label}
-        engineSource={calcResult?.source || ''}
-      />
-
-      <main id="main-content" className="container workspace-main">
+        isRemote={connection.mode === 'remote'}
+        onQuickAddCandidate={handleQuickAddCandidate}
+      >
         <StatusBanner
           banner={banner}
           onDismiss={() => setBanner(null)}
           onRetry={loadAll}
+          onUndo={handleUndo}
         />
 
         {loading || !workspace ? (
           <LoadingSkeleton />
         ) : (
-          <>
+          <div key={activeTab} className="view-stage">
+            {activeTab === 'dashboard' && (
+              <DashboardTab
+                workspace={workspace}
+                activeMethod={activeMethod}
+                onSelectMethod={setActiveMethod}
+                calcResult={calcResult}
+                calcError={calcError}
+                onApplyPreset={handleApplyPreset}
+                onUpdateHumanDecision={handleUpdateHumanDecision}
+                onInspectCandidate={setInspectedId}
+                onNavigateTab={selectTab}
+              />
+            )}
+
             {activeTab === 'data' && (
               <DataManagementTab
                 criteria={workspace.criteria}
                 alternatives={workspace.alternatives}
+                quickAddSignal={quickAddSignal}
+                requestedEdit={requestedEdit}
                 onAddCriterion={handleAddCriterion}
                 onUpdateCriterion={handleUpdateCriterion}
                 onDeleteCriterion={handleDeleteCriterion}
                 onAddAlternative={handleAddAlternative}
                 onUpdateAlternative={handleUpdateAlternative}
                 onDeleteAlternative={handleDeleteAlternative}
+                onInspectCandidate={setInspectedId}
                 onResetWorkspace={handleResetWorkspace}
                 onNextTab={() => selectTab('bobot-metode')}
               />
@@ -248,6 +318,7 @@ export default function App() {
                 activeMethod={activeMethod}
                 onSelectMethod={setActiveMethod}
                 onChangeWeight={handleChangeWeight}
+                onApplyPreset={handleApplyPreset}
                 onNormalizeWeights={handleNormalizeWeights}
                 onNextTab={() => selectTab('perhitungan')}
               />
@@ -262,6 +333,7 @@ export default function App() {
                 calcResult={calcResult}
                 calcError={calcError}
                 onUpdateHumanDecision={handleUpdateHumanDecision}
+                onInspectCandidate={setInspectedId}
                 onGoToData={() => selectTab('data')}
                 onNextTab={() => selectTab('visualisasi')}
               />
@@ -295,17 +367,19 @@ export default function App() {
                 onReviewWeights={() => selectTab('bobot-metode')}
               />
             )}
-          </>
+          </div>
         )}
-      </main>
+      </AppShell>
 
-      <footer className="app-footer no-print">
-        <div className="container footer-inner">
-          <span>Sistem menyajikan dukungan perhitungan; pengelola bertanggung jawab atas keputusan akhir.</span>
-          <span>Data bawaan bersifat ilustrasi pembelajaran. Rujukan konsep MSS: Sharda, Delen, dan Turban (2021).</span>
-        </div>
-      </footer>
+      <CandidateDrawer
+        candidate={inspectedCandidate}
+        criteria={workspace?.criteria || []}
+        calcResult={calcResult}
+        activeMethod={activeMethod}
+        onClose={() => setInspectedId(null)}
+        onUpdateDecision={handleUpdateHumanDecision}
+        onEditCandidate={handleRequestEditCandidate}
+      />
     </>
   );
 }
-

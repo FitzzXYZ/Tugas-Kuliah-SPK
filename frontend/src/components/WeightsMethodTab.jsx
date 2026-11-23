@@ -2,72 +2,53 @@ import React from 'react';
 import { METHOD_INFO, VALID_METHODS, getWeightSummary } from '../models/spkEngine.js';
 import { IconCheck, IconDown, IconUp, IconWarn } from './StateViews.jsx';
 
+const WEIGHT_PRESETS = [
+  {
+    id: 'seimbang',
+    label: 'Seimbang (bawaan)',
+    byCode: { C1: 30, C2: 20, C3: 20, C4: 15, C5: 15 },
+  },
+  {
+    id: 'teknis',
+    label: 'Utamakan keahlian teknis',
+    byCode: { C1: 40, C2: 15, C3: 15, C4: 20, C5: 10 },
+  },
+  {
+    id: 'anggaran',
+    label: 'Utamakan hemat gaji',
+    byCode: { C1: 20, C2: 15, C3: 15, C4: 15, C5: 35 },
+  },
+  {
+    id: 'pengalaman',
+    label: 'Utamakan pengalaman',
+    byCode: { C1: 20, C2: 25, C3: 35, C4: 10, C5: 10 },
+  },
+];
+
 export default function WeightsMethodTab({
   criteria,
   activeMethod,
   onSelectMethod,
   onChangeWeight,
+  onApplyPreset,
   onNormalizeWeights,
   onNextTab,
 }) {
   const summary = getWeightSummary(criteria);
   const currentMethodInfo = METHOD_INFO[activeMethod];
+  const hasDefaultCodes = ['C1', 'C2', 'C3', 'C4', 'C5'].every((code) =>
+    criteria.some((c) => c.kode.toUpperCase() === code),
+  );
 
   return (
     <div className="stack-lg">
-      {/* Pemilihan Metode SPK (Fitur 4) */}
+      {/* Bagian 1: Pengaturan Bobot Prioritas (Fitur 3) */}
       <section className="cut-panel">
         <div className="panel-head">
           <div className="panel-head-text">
-            <h2 className="panel-title">Pemilihan metode SPK</h2>
+            <h2 className="panel-title">Atur prioritas penilaian (bobot kriteria)</h2>
             <p className="panel-subtitle">
-              Pilih metode perhitungan utama untuk tabel peringkat dan laporan. Ketiga metode tetap dihitung otomatis agar stabilitas peringkat dapat dibandingkan.
-            </p>
-          </div>
-          <div className="action-row">
-            <button type="button" className="key key--primary" onClick={onNextTab}>
-              Lihat peringkat
-            </button>
-          </div>
-        </div>
-
-        <div className="method-tray" role="group" aria-label="Pilih metode perhitungan SPK">
-          {VALID_METHODS.map((key) => {
-            const info = METHOD_INFO[key];
-            const selected = activeMethod === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                className="method-option"
-                aria-pressed={selected}
-                onClick={() => onSelectMethod(key)}
-              >
-                <span className="method-name">{info.nama}</span>
-                <span className="cell-secondary">{info.namaLengkap}</span>
-                <span className="method-desc">{info.ringkas}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="graphite-ledger" style={{ marginTop: 'var(--space-md)', padding: 'var(--space-md)' }}>
-          <div className="graphite-note" style={{ marginBottom: 'var(--space-xs)' }}>
-            Rumus aktif ({currentMethodInfo.namaLengkap})
-          </div>
-          <div className="graphite-formula" style={{ marginBottom: 0 }}>
-            {currentMethodInfo.rumus}
-          </div>
-        </div>
-      </section>
-
-      {/* Pengaturan Bobot Kriteria (Fitur 3) */}
-      <section className="cut-panel">
-        <div className="panel-head">
-          <div className="panel-head-text">
-            <h2 className="panel-title">Pengaturan bobot kriteria</h2>
-            <p className="panel-subtitle">
-              Sesuaikan tingkat kepentingan tiap kriteria. Jika total belum tepat 100%, engine menormalisasi otomatis saat menghitung atau Anda dapat menyamakan total ke 100%.
+              Geser pengatur di bawah untuk memberi bobot lebih besar pada kriteria yang paling penting bagi tim Anda. Usahakan total mendekati 100%.
             </p>
           </div>
           <div className="action-row">
@@ -77,19 +58,38 @@ export default function WeightsMethodTab({
               disabled={summary.isExact100}
               onClick={onNormalizeWeights}
             >
-              Normalisasi ke 100%
+              Samakan ke 100%
+            </button>
+            <button type="button" className="key key--primary" onClick={onNextTab}>
+              Lihat peringkat
             </button>
           </div>
         </div>
+
+        {hasDefaultCodes && (
+          <div className="preset-row" role="group" aria-label="Pilihan cepat prioritas">
+            <span className="preset-label">Pilihan cepat:</span>
+            {WEIGHT_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="key key--sm"
+                onClick={() => onApplyPreset(preset.byCode)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className={`status-bar ${summary.isExact100 ? 'is-pass' : 'is-warn'}`}>
           <span className="status-lead">
             {summary.isExact100 ? <IconCheck /> : <IconWarn />}
             <span>
-              Total bobot input saat ini <strong>{summary.rawTotal}%</strong>{' '}
+              Total bobot saat ini <strong>{summary.rawTotal}%</strong>.{' '}
               {summary.isExact100
-                ? '(proporsi bobot seimbang tepat 100%).'
-                : '(belum 100%; bobot ternormalisasi w_j tetap berjumlah 1.0000 saat dihitung).'}
+                ? 'Sudah pas 100% dan siap dihitung.'
+                : 'Belum pas 100%. Klik tombol Samakan ke 100% agar proporsi otomatis disesuaikan.'}
             </span>
           </span>
         </div>
@@ -98,11 +98,11 @@ export default function WeightsMethodTab({
           <table className="ledger-table">
             <thead>
               <tr>
-                <th>Kriteria</th>
-                <th>Tipe</th>
-                <th style={{ minWidth: '13rem' }}>Pengatur bobot</th>
-                <th className="col-num">Input (%)</th>
-                <th className="col-num">Bobot w_j</th>
+                <th>Kriteria penilaian</th>
+                <th>Arah nilai</th>
+                <th style={{ minWidth: '13rem' }}>Geser prioritas</th>
+                <th className="col-num">Bobot (%)</th>
+                <th className="col-num">Porsi akhir</th>
               </tr>
             </thead>
             <tbody>
@@ -110,7 +110,7 @@ export default function WeightsMethodTab({
                 <tr key={item.id}>
                   <td>
                     <span className="cell-primary">
-                      {item.kode} {item.nama}
+                      {item.nama} ({item.kode})
                     </span>
                     <div className="weight-bar-track" style={{ marginTop: 'var(--space-2xs)' }}>
                       <div
@@ -122,12 +122,12 @@ export default function WeightsMethodTab({
                   <td>
                     <span className={`status-tag ${item.tipe === 'benefit' ? 'is-benefit' : 'is-cost'}`}>
                       {item.tipe === 'benefit' ? <IconUp /> : <IconDown />}
-                      <span>{item.tipe === 'benefit' ? 'Benefit' : 'Cost'}</span>
+                      <span>{item.tipe === 'benefit' ? 'Makin besar makin baik' : 'Makin kecil makin baik'}</span>
                     </span>
                   </td>
                   <td>
                     <label className="visually-hidden" htmlFor={`slider-${item.id}`}>
-                      Geser bobot {item.nama}
+                      Geser prioritas {item.nama}
                     </label>
                     <input
                       id={`slider-${item.id}`}
@@ -160,12 +160,60 @@ export default function WeightsMethodTab({
                       }}
                     />
                   </td>
-                  <td className="col-num">{item.weight.toFixed(4)}</td>
+                  <td className="col-num">{item.percent.toFixed(1)}%</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </section>
+
+      {/* Bagian 2: Pemilihan Metode SPK (Fitur 4) */}
+      <section className="cut-panel">
+        <div className="panel-head">
+          <div className="panel-head-text">
+            <h2 className="panel-title">Pilih cara perhitungan (metode SPK)</h2>
+            <p className="panel-subtitle">
+              Jika baru pertama kali memakai aplikasi ini, pilih SAW karena paling mudah dibaca. Ketiga metode tetap dihitung otomatis agar Anda bisa membandingkan hasilnya.
+            </p>
+          </div>
+        </div>
+
+        <div className="method-tray" role="group" aria-label="Pilih metode perhitungan SPK">
+          {VALID_METHODS.map((key) => {
+            const info = METHOD_INFO[key];
+            const selected = activeMethod === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                className="method-option"
+                aria-pressed={selected}
+                onClick={() => onSelectMethod(key)}
+              >
+                <span className="method-name">
+                  {info.nama}: {info.namaAwam}
+                </span>
+                <span className="cell-secondary">{info.namaLengkap}</span>
+                <span className="method-desc">{info.ringkas}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <details className="disclosure-box">
+          <summary>Lihat rumus matematika metode {currentMethodInfo.nama} (opsional)</summary>
+          <div className="disclosure-body">
+            <div className="graphite-ledger" style={{ padding: 'var(--space-md)' }}>
+              <div className="graphite-note" style={{ marginBottom: 'var(--space-xs)' }}>
+                Formula {currentMethodInfo.namaLengkap}
+              </div>
+              <div className="graphite-formula" style={{ marginBottom: 0 }}>
+                {currentMethodInfo.rumus}
+              </div>
+            </div>
+          </div>
+        </details>
       </section>
     </div>
   );

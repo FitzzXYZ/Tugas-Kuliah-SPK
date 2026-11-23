@@ -24,11 +24,12 @@ function getInitials(name) {
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
+// Preset prioritas disesuaikan ke 5 kriteria: C1 Pendidikan, C2 Pengalaman, C3 Tes Tulis, C4 Wawancara, C5 Gaji.
 const QUICK_PRESETS = [
-  { id: 'seimbang', label: 'Seimbang', byCode: { C1: 30, C2: 20, C3: 20, C4: 15, C5: 15 } },
-  { id: 'teknis', label: 'Fokus teknis', byCode: { C1: 40, C2: 15, C3: 15, C4: 20, C5: 10 } },
-  { id: 'anggaran', label: 'Hemat gaji', byCode: { C1: 20, C2: 15, C3: 15, C4: 15, C5: 35 } },
-  { id: 'pengalaman', label: 'Pengalaman', byCode: { C1: 20, C2: 25, C3: 35, C4: 10, C5: 10 } },
+  { id: 'seimbang', label: 'Seimbang', byCode: { C1: 20, C2: 20, C3: 25, C4: 20, C5: 15 } },
+  { id: 'tes', label: 'Fokus tes', byCode: { C1: 10, C2: 15, C3: 35, C4: 30, C5: 10 } },
+  { id: 'pengalaman', label: 'Pengalaman', byCode: { C1: 15, C2: 35, C3: 20, C4: 20, C5: 10 } },
+  { id: 'anggaran', label: 'Hemat gaji', byCode: { C1: 15, C2: 15, C3: 20, C4: 15, C5: 35 } },
 ];
 
 export default function DashboardTab({
@@ -103,7 +104,7 @@ export default function DashboardTab({
 
   return (
     <div className="stack-lg">
-      {/* 1. Executive Command Band dengan karya seni editorial kaca rose */}
+      {/* 1. Executive Command Band (Velvet Plum-Berry + Rose Glass Art + 50-Cell Meter) */}
       <section className="dash-hero" aria-label="Ringkasan kandidat teratas">
         <img
           className="dash-hero-art"
@@ -119,15 +120,15 @@ export default function DashboardTab({
             Peringkat #1: {leader.nama} ({leader.kode})
           </h2>
           <span className="dash-hero-role">
-            {leader.posisi}, unggul menurut metode {methodInfo.nama}
+            {leader.posisi}, kandidat teratas metode {methodInfo.nama}
           </span>
           <p className="dash-hero-desc">
             {leaderStrengths.length > 0 && (
-              <>Kuat di {leaderStrengths.map((s) => s.nama).join(' dan ')}. </>
+              <>Paling menonjol pada {leaderStrengths.map((s) => s.nama).join(' dan ')}. </>
             )}
             {agreeCount === 3
-              ? 'Menempati peringkat pertama secara konsisten pada ketiga metode hitung.'
-              : `Memimpin pada ${agreeCount} dari 3 metode hitung; tinjau perbandingan lintas metode.`}
+              ? 'Konsisten menempati peringkat pertama pada seluruh metode (SAW, WP, dan TOPSIS).'
+              : `Memimpin pada ${agreeCount} dari 3 metode hitung; periksa perbandingan lintas metode.`}
           </p>
 
           <div className="dash-hero-controls">
@@ -148,9 +149,9 @@ export default function DashboardTab({
             <button
               type="button"
               className="key key--primary key--sm"
-              onClick={() => onNavigateTab('perhitungan')}
+              onClick={() => onInspectCandidate(leader.id)}
             >
-              Buka peringkat
+              Tinjau profil #1
             </button>
             <button
               type="button"
@@ -223,60 +224,7 @@ export default function DashboardTab({
         </div>
       </section>
 
-      {/* 2. Sorotan Podium 3 Besar (Klik untuk melihat peta radar kandidat) */}
-      <section className="podium-grid" aria-label="Tiga kandidat teratas">
-        {topThree.map((item, idx) => {
-          const topStrength = getCandidateStrengths(item.id, criteria, calcResult.saw, 1)[0];
-          const isSelected = focusedCandidate.id === item.id;
-          const pct = activeMethod === 'wp' ? (item.score / maxScore) * 100 : item.score * 100;
-          const scoreLabel =
-            activeMethod === 'wp'
-              ? `${(item.score * 100).toFixed(1)}%`
-              : `${(item.score * 100).toFixed(1)} / 100`;
-
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className={`podium-tile anim-row ${item.rank === 1 ? 'is-first' : ''} ${isSelected ? 'is-focused' : ''}`}
-              style={{ '--row-i': idx }}
-              aria-pressed={isSelected}
-              onClick={() => setFocusedId(item.id)}
-            >
-              <div className="podium-top">
-                <div className="person-cell">
-                  <span className={`monogram ${item.rank === 1 ? 'is-leader' : ''}`} aria-hidden="true">
-                    {getInitials(item.nama)}
-                  </span>
-                  <div className="podium-id">
-                    <span className="cell-primary">{item.nama}</span>
-                    <span className="cell-secondary">
-                      {item.kode}, {item.posisi}
-                    </span>
-                  </div>
-                </div>
-                <span className={`rank-chip is-rank-${item.rank}`}>#{item.rank}</span>
-              </div>
-
-              <div className="podium-score-row">
-                <span className="podium-score-val">{scoreLabel}</span>
-                <span className="cell-secondary">
-                  {topStrength ? `Unggul: ${topStrength.nama}` : methodInfo.nama}
-                </span>
-              </div>
-
-              <div className="podium-bar-track" aria-hidden="true">
-                <div
-                  className={`score-bar-fill anim-bar ${item.rank === 1 ? 'is-top' : ''}`}
-                  style={{ '--row-i': idx, width: `${Math.max(6, Math.min(100, pct)).toFixed(1)}%` }}
-                />
-              </div>
-            </button>
-          );
-        })}
-      </section>
-
-      {/* 3. Strip Angka Operasional */}
+      {/* 2. Ringkasan 4 Angka Kunci */}
       <section className="stat-strip" aria-label="Ringkasan angka seleksi" style={{ marginBottom: 0 }}>
         <div className="stat-cell">
           <span className="stat-label">Total pelamar</span>
@@ -310,18 +258,18 @@ export default function DashboardTab({
         </div>
       </section>
 
-      {/* 4. Area Analitik 2 Kolom */}
+      {/* 3. Workspace Analitik Fokus 2 Kolom (Tanpa duplikasi kartu podium) */}
       <div className="dash-grid">
         <section className="cut-panel">
           <div className="panel-head">
             <div className="panel-head-text">
               <h2 className="panel-title">Papan peringkat langsung ({methodInfo.nama})</h2>
               <p className="panel-subtitle">
-                Urutan pelamar diperbarui otomatis saat bobot atau metode diganti. Tetapkan status keputusan langsung dari sini.
+                Klik nama pelamar untuk membuka rincian lengkap, atau tetapkan status keputusan langsung pada tabel ini.
               </p>
             </div>
-            <button type="button" className="key key--sm" onClick={() => onNavigateTab('visualisasi')}>
-              Semua grafik
+            <button type="button" className="key key--sm" onClick={() => onNavigateTab('perhitungan')}>
+              Audit rumus
             </button>
           </div>
 
@@ -417,31 +365,33 @@ export default function DashboardTab({
 
           <div className="dash-quick-bar">
             <span className="cell-secondary">
-              Butuh memeriksa langkah rumus matriks atau menambah catatan wawancara?
+              {issues.length > 0
+                ? issues[0].message
+                : 'Seluruh data pelamar, kriteria, dan bobot siap untuk keputusan akhir.'}
             </span>
             <div className="action-row">
               <button type="button" className="key key--sm" onClick={() => onNavigateTab('data')}>
-                Kelola pelamar
+                Kelola data
               </button>
               <button
                 type="button"
                 className="key key--sm"
-                onClick={() => onNavigateTab('perhitungan')}
+                onClick={() => onNavigateTab('visualisasi')}
               >
-                Detail perhitungan
+                Buka grafik
               </button>
             </div>
           </div>
         </section>
 
-        {/* Kolom Kanan: Radar Profil + Komposisi Bobot + Cek Kualitas Data */}
+        {/* Kolom Kanan: Radar 3 Besar + Simulasi Prioritas Bobot */}
         <div className="dash-side">
           <section className="cut-panel">
             <div className="panel-head">
               <div className="panel-head-text">
-                <h2 className="panel-title">Peta kekuatan: {focusedCandidate.nama}</h2>
+                <h2 className="panel-title">Profil kekuatan 3 besar</h2>
                 <p className="panel-subtitle">
-                  Klik kartu 3 Besar di atas untuk membandingkan kandidat lain, atau buka profil lengkapnya.
+                  Bandingkan profil kandidat teratas terhadap rata-rata seluruh pelamar.
                 </p>
               </div>
               <button
@@ -449,9 +399,24 @@ export default function DashboardTab({
                 className="key key--sm"
                 onClick={() => onInspectCandidate(focusedCandidate.id)}
               >
-                Lihat profil
+                Detail
               </button>
             </div>
+
+            <div className="filter-strip" role="group" aria-label="Pilih kandidat 3 besar untuk radar">
+              {topThree.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="filter-chip"
+                  aria-pressed={focusedCandidate.id === item.id}
+                  onClick={() => setFocusedId(item.id)}
+                >
+                  #{item.rank} {item.nama.split(' ')[0]}
+                </button>
+              ))}
+            </div>
+
             <CandidateRadarChart
               criteria={criteria}
               sawResult={calcResult.saw}
@@ -463,9 +428,9 @@ export default function DashboardTab({
           <section className="cut-panel">
             <div className="panel-head">
               <div className="panel-head-text">
-                <h2 className="panel-title">Komposisi prioritas bobot</h2>
+                <h2 className="panel-title">Prioritas bobot dan simulasi cepat</h2>
                 <p className="panel-subtitle">
-                  Uji cepat prioritas di bawah untuk melihat perubahan peringkat secara langsung.
+                  Uji perubahan prioritas untuk melihat dampaknya pada peringkat teratas.
                 </p>
               </div>
               <button
@@ -515,46 +480,6 @@ export default function DashboardTab({
                 ))}
               </div>
             )}
-          </section>
-
-          <section className="cut-panel">
-            <div className="panel-head">
-              <div className="panel-head-text">
-                <h2 className="panel-title">Cek kelengkapan data (MSS)</h2>
-                <p className="panel-subtitle">
-                  Pastikan data pelamar lengkap sebelum menetapkan keputusan akhir.
-                </p>
-              </div>
-            </div>
-
-            <ul className="health-list">
-              <li
-                className={`health-row ${alternatives.length >= MIN_ALTERNATIVES ? 'is-ok' : 'is-warn'}`}
-              >
-                {alternatives.length >= MIN_ALTERNATIVES ? <IconCheck /> : <IconWarn />}
-                <span>
-                  {alternatives.length} pelamar terdaftar (minimal {MIN_ALTERNATIVES} pelamar).
-                </span>
-              </li>
-              <li className={`health-row ${criteria.length >= MIN_CRITERIA ? 'is-ok' : 'is-warn'}`}>
-                {criteria.length >= MIN_CRITERIA ? <IconCheck /> : <IconWarn />}
-                <span>
-                  {criteria.length} kriteria aktif (minimal {MIN_CRITERIA} kriteria).
-                </span>
-              </li>
-              <li className={`health-row ${weightSummary.isExact100 ? 'is-ok' : 'is-warn'}`}>
-                {weightSummary.isExact100 ? <IconCheck /> : <IconWarn />}
-                <span>Total bobot prioritas {weightSummary.rawTotal}%.</span>
-              </li>
-              {issues
-                .filter((i) => i.level === 'info')
-                .map((issue, idx) => (
-                  <li key={idx} className="health-row is-warn">
-                    <IconWarn />
-                    <span>{issue.message}</span>
-                  </li>
-                ))}
-            </ul>
           </section>
         </div>
       </div>

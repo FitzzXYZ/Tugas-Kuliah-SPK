@@ -3,6 +3,7 @@ import {
   DECISION_LABELS,
   METHOD_INFO,
   VALID_DECISIONS,
+  formatCriterionDisplay,
 } from '../models/spkEngine.js';
 import CandidateRadarChart from './CandidateRadarChart.jsx';
 import { IconClose } from './StateViews.jsx';
@@ -124,7 +125,7 @@ export default function CandidateDrawer({
                         {c.nama} ({c.kode})
                       </span>
                       <span className="col-num">
-                        {rawVal} {c.satuan}
+                        {formatCriterionDisplay(c, rawVal)}
                       </span>
                     </div>
                     <div className="drawer-crit-bar">

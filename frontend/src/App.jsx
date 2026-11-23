@@ -249,6 +249,17 @@ export default function App() {
   }
 
   const weightSummary = getWeightSummary(workspace?.criteria || []);
+  const activeLeader = calcResult?.[activeMethod]?.rankings?.[0] || null;
+  const leaderSummary = activeLeader
+    ? {
+        id: activeLeader.id,
+        nama: activeLeader.nama,
+        scoreLabel:
+          activeMethod === 'wp'
+            ? `${(activeLeader.score * 100).toFixed(1)}%`
+            : `${(activeLeader.score * 100).toFixed(1)}`,
+      }
+    : null;
   const inspectedCandidate =
     inspectedId && workspace
       ? workspace.alternatives.find((a) => a.id === inspectedId) || null
@@ -267,6 +278,9 @@ export default function App() {
         weightTotal={weightSummary.rawTotal}
         isExact100={weightSummary.isExact100}
         isRemote={connection.mode === 'remote'}
+        leaderSummary={leaderSummary}
+        quickCandidates={workspace?.alternatives || []}
+        onInspectLeader={setInspectedId}
         onQuickAddCandidate={handleQuickAddCandidate}
       >
         <StatusBanner
@@ -346,6 +360,7 @@ export default function App() {
                 activeMethod={activeMethod}
                 calcResult={calcResult}
                 calcError={calcError}
+                onInspectCandidate={setInspectedId}
                 onGoToData={() => selectTab('data')}
                 onNextTab={() => selectTab('laporan')}
               />

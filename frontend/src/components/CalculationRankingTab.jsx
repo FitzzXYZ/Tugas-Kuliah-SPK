@@ -208,6 +208,41 @@ export default function CalculationRankingTab({
           </div>
         </div>
 
+        <div className="decision-progress-wrap" aria-label="Progres penetapan keputusan pengelola">
+          <div className="decision-progress-meta">
+            <span>Progres keputusan pengelola</span>
+            <span className="col-code">
+              {alternatives.length - pendingCount} dari {alternatives.length} pelamar sudah ditetapkan
+            </span>
+          </div>
+          <div className="decision-progress-bar" aria-hidden="true">
+            {decidedCount > 0 && (
+              <span
+                className="dp-seg is-lanjut"
+                style={{ width: `${(decidedCount / alternatives.length) * 100}%` }}
+              />
+            )}
+            {reserveCount > 0 && (
+              <span
+                className="dp-seg is-cadangan"
+                style={{ width: `${(reserveCount / alternatives.length) * 100}%` }}
+              />
+            )}
+            {rejectedCount > 0 && (
+              <span
+                className="dp-seg is-tolak"
+                style={{ width: `${(rejectedCount / alternatives.length) * 100}%` }}
+              />
+            )}
+            {pendingCount > 0 && (
+              <span
+                className="dp-seg is-belum"
+                style={{ width: `${(pendingCount / alternatives.length) * 100}%` }}
+              />
+            )}
+          </div>
+        </div>
+
         <div className="filter-strip" role="group" aria-label="Saring berdasarkan keputusan">
           {[
             { id: 'semua', label: `Semua (${rankings.length})` },

@@ -47,6 +47,23 @@ export function roundNum(value, decimals = 4) {
   return Math.round((Number(value) || 0) * factor) / factor;
 }
 
+export function formatCriterionValue(criterion, value) {
+  if (Array.isArray(criterion?.opsi) && criterion.opsi.length > 0) {
+    const num = Number(value);
+    const found = criterion.opsi.find((opt) => Number(opt.nilai) === num);
+    if (found) return found.label;
+  }
+  return String(value ?? '-');
+}
+
+export function formatCriterionDisplay(criterion, value) {
+  if (Array.isArray(criterion?.opsi) && criterion.opsi.length > 0) {
+    const label = formatCriterionValue(criterion, value);
+    return `${label} (${value})`;
+  }
+  return `${value ?? '-'} ${criterion?.satuan || ''}`.trim();
+}
+
 export function validateCriterion(input, existingCriteria = [], editingId = null) {
   const errors = {};
   const kode = String(input?.kode ?? '').trim().toUpperCase();
@@ -81,6 +98,7 @@ export function validateCriterion(input, existingCriteria = [], editingId = null
       tipe: tipe || 'benefit',
       satuan,
       bobot: roundNum(bobot, 2),
+      ...(Array.isArray(input?.opsi) && input.opsi.length > 0 ? { opsi: input.opsi } : {}),
     },
   };
 }
@@ -551,7 +569,7 @@ export function buildDecisionCsv(workspace, methodResult, activeMethod) {
 
   const rows = methodResult.rankings.map((item) => {
     const alt = item.alternative;
-    const vals = workspace.criteria.map((c) => alt.nilai[c.id]);
+    const vals = workspace.criteria.map((c) => formatCriterionValue(c, alt.nilai[c.id]));
     return [
       item.rank,
       alt.kode,

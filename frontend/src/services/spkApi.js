@@ -1,7 +1,7 @@
 import { SAMPLE_WORKSPACE } from '../data/sampleWorkspace.js';
 import { calculateAllMethods } from '../models/spkEngine.js';
 
-const STORAGE_KEY = 'spk_seleksi_karyawan_workspace_v2';
+const STORAGE_KEY = 'spk_seleksi_karyawan_workspace_v3';
 
 function resolveApiBaseUrl() {
   if (typeof window === 'undefined') return '';

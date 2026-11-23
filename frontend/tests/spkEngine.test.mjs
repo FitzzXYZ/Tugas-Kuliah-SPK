@@ -9,6 +9,7 @@ import {
   calculateTOPSIS,
   calculateWP,
   detectDataIssues,
+  formatCriterionValue,
   getCandidateStrengths,
   normalizeCriteriaWeightsTo100,
   syncAlternativesWithCriteria,
@@ -21,12 +22,17 @@ const { alternatives, criteria } = SAMPLE_WORKSPACE;
 test('SAW computes accurate linear normalization for benefit and cost criteria', () => {
   const saw = calculateSAW(alternatives, criteria);
   assert.equal(saw.rankings.length, 6);
-  // Verifikasi manual A6 (Farhan): C1=82/90, C2=84/86, C3=4/4, C4=88/88, C5=6.2/8.5
+  // Verifikasi manual A6 (Farhan): C1=3/3 (S2), C2=4/4 thn, C3=82/90, C4=84/86, C5=6.2/8.5
   const expectedA6 =
-    0.3 * (82 / 90) + 0.2 * (84 / 86) + 0.2 * (4 / 4) + 0.15 * (88 / 88) + 0.15 * (6.2 / 8.5);
+    0.2 * (3 / 3) + 0.2 * (4 / 4) + 0.25 * (82 / 90) + 0.2 * (84 / 86) + 0.15 * (6.2 / 8.5);
   const a6 = saw.rankings.find((r) => r.kode === 'A6');
   assert.ok(Math.abs(a6.score - expectedA6) < 1e-6);
   assert.equal(saw.rankings[0].kode, 'A6');
+
+  // Verifikasi label skala Pendidikan D3/S1/S2
+  assert.equal(formatCriterionValue(criteria[0], 1), 'D3');
+  assert.equal(formatCriterionValue(criteria[0], 2), 'S1');
+  assert.equal(formatCriterionValue(criteria[0], 3), 'S2');
 });
 
 test('WP computes signed power vector S and normalized preference V summing to 1', () => {
@@ -36,7 +42,7 @@ test('WP computes signed power vector S and normalized preference V summing to 1
   assert.equal(wp.rankings[0].kode, 'A6');
   // Verifikasi A6 S_i secara langsung
   const expectedS6 =
-    82 ** 0.3 * 84 ** 0.2 * 4 ** 0.2 * 88 ** 0.15 * 8.5 ** -0.15;
+    3 ** 0.2 * 4 ** 0.2 * 82 ** 0.25 * 84 ** 0.2 * 8.5 ** -0.15;
   const row6 = wp.vectorS.find((r) => r.kode === 'A6');
   assert.ok(Math.abs(row6.sValue - expectedS6) < 1e-6);
 });

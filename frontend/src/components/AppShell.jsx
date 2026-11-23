@@ -59,14 +59,32 @@ export default function AppShell({
   weightTotal,
   isExact100,
   isRemote,
+  leaderSummary,
+  quickCandidates,
+  onInspectLeader,
   onQuickAddCandidate,
   children,
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [quickQuery, setQuickQuery] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const altOk = altCount >= MIN_ALTERNATIVES;
   const critOk = critCount >= MIN_CRITERIA;
   const currentTab = TABS.find((t) => t.id === activeTab) || TABS[0];
+
+  const q = quickQuery.trim().toLowerCase();
+  const quickMatches =
+    q.length > 0 && Array.isArray(quickCandidates)
+      ? quickCandidates
+          .filter(
+            (c) =>
+              c.nama.toLowerCase().includes(q) ||
+              c.kode.toLowerCase().includes(q) ||
+              c.posisi.toLowerCase().includes(q),
+          )
+          .slice(0, 5)
+      : [];
 
   function handleNavClick(tabId) {
     onSelectTab(tabId);
@@ -139,6 +157,22 @@ export default function AppShell({
         </nav>
 
         <div className="sidebar-foot">
+          {leaderSummary && (
+            <button
+              type="button"
+              className="sidebar-leader-btn"
+              onClick={() => {
+                onInspectLeader(leaderSummary.id);
+                setMobileOpen(false);
+              }}
+            >
+              <span className="sidebar-leader-top">
+                <span>Teratas ({METHOD_INFO[activeMethod].nama})</span>
+                <span className="sidebar-check-num">{leaderSummary.scoreLabel}</span>
+              </span>
+              <span className="sidebar-leader-name">{leaderSummary.nama}</span>
+            </button>
+          )}
           <div className="sidebar-checks">
             <div className={`sidebar-check-row ${altOk ? 'is-ok' : 'is-warn'}`}>
               {altOk ? <IconCheck /> : <IconWarn />}
@@ -186,6 +220,56 @@ export default function AppShell({
           </div>
 
           <div className="topbar-actions">
+            <div className="quick-search-wrap">
+              <label htmlFor="global-quick-search" className="visually-hidden">
+                Cari cepat profil pelamar
+              </label>
+              <input
+                id="global-quick-search"
+                className="input quick-search-input"
+                type="search"
+                value={quickQuery}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setTimeout(() => setSearchFocused(false), 160)}
+                onChange={(e) => setQuickQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && quickMatches.length > 0) {
+                    e.preventDefault();
+                    onInspectLeader(quickMatches[0].id);
+                    setQuickQuery('');
+                    setSearchFocused(false);
+                  }
+                }}
+                placeholder="Cari pelamar..."
+              />
+              {searchFocused && q.length > 0 && (
+                <div className="quick-search-menu" role="listbox" aria-label="Hasil pencarian pelamar">
+                  {quickMatches.length === 0 ? (
+                    <span className="quick-search-empty">Tidak ada pelamar cocok.</span>
+                  ) : (
+                    quickMatches.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        className="quick-search-item"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          onInspectLeader(item.id);
+                          setQuickQuery('');
+                          setSearchFocused(false);
+                        }}
+                      >
+                        <span className="cell-primary">
+                          {item.nama} ({item.kode})
+                        </span>
+                        <span className="cell-secondary">{item.posisi}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="topbar-method-switch" role="group" aria-label="Metode aktif">
               {VALID_METHODS.map((m) => (
                 <button

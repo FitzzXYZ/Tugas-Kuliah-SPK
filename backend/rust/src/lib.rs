@@ -4,6 +4,13 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CriterionOption {
+    pub label: String,
+    pub nilai: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Criterion {
     pub id: String,
     pub kode: String,
@@ -11,6 +18,8 @@ pub struct Criterion {
     pub tipe: String, // "benefit" | "cost"
     pub bobot: f64,
     pub satuan: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub opsi: Option<Vec<CriterionOption>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -659,10 +668,10 @@ mod tests {
         assert_eq!(res.wp.rankings[0].kode, "A6");
         assert_eq!(res.topsis.rankings[0].kode, "A6");
 
-        let expected_a6_saw = 0.3 * (82.0 / 90.0)
-            + 0.2 * (84.0 / 86.0)
-            + 0.2 * (4.0 / 4.0)
-            + 0.15 * (88.0 / 88.0)
+        let expected_a6_saw = 0.20 * (3.0 / 3.0)
+            + 0.20 * (4.0 / 4.0)
+            + 0.25 * (82.0 / 90.0)
+            + 0.20 * (84.0 / 86.0)
             + 0.15 * (6.2 / 8.5);
         assert!((res.saw.rankings[0].score - expected_a6_saw).abs() < 1e-6);
 
@@ -680,6 +689,7 @@ mod tests {
                 tipe: "benefit".into(),
                 bobot: 50.0,
                 satuan: "poin".into(),
+                opsi: None,
             },
             Criterion {
                 id: "c2".into(),
@@ -688,6 +698,7 @@ mod tests {
                 tipe: "cost".into(),
                 bobot: 50.0,
                 satuan: "juta".into(),
+                opsi: None,
             },
         ];
         let mut nilai = BTreeMap::new();

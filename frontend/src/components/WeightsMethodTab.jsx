@@ -1,27 +1,28 @@
 import React from 'react';
 import { METHOD_INFO, VALID_METHODS, getWeightSummary } from '../models/spkEngine.js';
+import MethodDiagram from './MethodDiagrams.jsx';
 import { IconCheck, IconDown, IconUp, IconWarn } from './StateViews.jsx';
 
 const WEIGHT_PRESETS = [
   {
     id: 'seimbang',
     label: 'Seimbang (bawaan)',
-    byCode: { C1: 30, C2: 20, C3: 20, C4: 15, C5: 15 },
+    byCode: { C1: 20, C2: 20, C3: 25, C4: 20, C5: 15 },
   },
   {
-    id: 'teknis',
-    label: 'Utamakan keahlian teknis',
-    byCode: { C1: 40, C2: 15, C3: 15, C4: 20, C5: 10 },
-  },
-  {
-    id: 'anggaran',
-    label: 'Utamakan hemat gaji',
-    byCode: { C1: 20, C2: 15, C3: 15, C4: 15, C5: 35 },
+    id: 'tes',
+    label: 'Fokus tes dan wawancara',
+    byCode: { C1: 10, C2: 15, C3: 35, C4: 30, C5: 10 },
   },
   {
     id: 'pengalaman',
     label: 'Utamakan pengalaman',
-    byCode: { C1: 20, C2: 25, C3: 35, C4: 10, C5: 10 },
+    byCode: { C1: 15, C2: 35, C3: 20, C4: 20, C5: 10 },
+  },
+  {
+    id: 'anggaran',
+    label: 'Utamakan hemat gaji',
+    byCode: { C1: 15, C2: 15, C3: 20, C4: 15, C5: 35 },
   },
 ];
 
@@ -191,10 +192,15 @@ export default function WeightsMethodTab({
                 aria-pressed={selected}
                 onClick={() => onSelectMethod(key)}
               >
-                <span className="method-name">
-                  {info.nama}: {info.namaAwam}
-                </span>
-                <span className="cell-secondary">{info.namaLengkap}</span>
+                <div className="method-option-head">
+                  <div>
+                    <span className="method-name">
+                      {info.nama}: {info.namaAwam}
+                    </span>
+                    <span className="cell-secondary">{info.namaLengkap}</span>
+                  </div>
+                  <MethodDiagram method={key} />
+                </div>
                 <span className="method-desc">{info.ringkas}</span>
               </button>
             );

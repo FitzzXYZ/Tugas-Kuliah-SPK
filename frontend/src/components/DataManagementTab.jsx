@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
+  DECISION_LABELS,
   MIN_ALTERNATIVES,
   MIN_CRITERIA,
+  formatCriterionValue,
   validateAlternative,
   validateCriterion,
 } from '../models/spkEngine.js';
-import { EmptyState, IconDown, IconUp, IconWarn } from './StateViews.jsx';
+import { EmptyState, IconDown, IconPlus, IconUp, IconWarn } from './StateViews.jsx';
+
+function getInitials(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '??';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
 
 function nextCode(prefix, list) {
   let maxNum = 0;
@@ -19,7 +31,7 @@ function nextCode(prefix, list) {
 function createEmptyAltForm(criteria, alternatives) {
   const nilai = {};
   for (const c of criteria) {
-    nilai[c.id] = '';
+    nilai[c.id] = Array.isArray(c.opsi) && c.opsi.length > 0 ? String(c.opsi[Math.min(1, c.opsi.length - 1)].nilai) : '';
   }
   return {
     id: '',
@@ -40,6 +52,7 @@ function createEmptyCritForm(criteria) {
     tipe: 'benefit',
     satuan: 'poin',
     bobot: '10',
+    opsi: null,
   };
 }
 
@@ -70,12 +83,15 @@ export default function DataManagementTab({
 
   const [search, setSearch] = useState('');
   const [posisiFilter, setPosisiFilter] = useState('semua');
+  const [viewMode, setViewMode] = useState('table');
 
   useEffect(() => {
     setAltForm((prev) => {
       const nextNilai = {};
       for (const c of criteria) {
-        nextNilai[c.id] = prev.nilai?.[c.id] ?? '';
+        const fallback =
+          Array.isArray(c.opsi) && c.opsi.length > 0 ? String(c.opsi[Math.min(1, c.opsi.length - 1)].nilai) : '';
+        nextNilai[c.id] = prev.nilai?.[c.id] ?? fallback;
       }
       return { ...prev, nilai: nextNilai };
     });
@@ -195,6 +211,7 @@ export default function DataManagementTab({
       tipe: item.tipe,
       satuan: item.satuan,
       bobot: String(item.bobot),
+      opsi: item.opsi || null,
     });
     setShowCritForm(true);
   }
@@ -220,51 +237,19 @@ export default function DataManagementTab({
 
   return (
     <div className="stack-lg">
-      {/* Panduan 4 Langkah Singkat untuk Pengguna Baru */}
-      <section className="guide-strip" aria-label="Panduan cepat penggunaan">
-        <div className="guide-step">
-          <span className="guide-step-num">Langkah 1</span>
-          <span className="guide-step-title">Periksa data pelamar</span>
-          <span className="guide-step-text">
-            Data contoh sudah siap dipakai. Anda bisa langsung lanjut atau menambah pelamar sendiri.
-          </span>
-        </div>
-        <div className="guide-step">
-          <span className="guide-step-num">Langkah 2</span>
-          <span className="guide-step-title">Atur bobot prioritas</span>
-          <span className="guide-step-text">
-            Tentukan syarat mana yang paling penting bagi tim Anda (misalnya tes teknis atau gaji).
-          </span>
-        </div>
-        <div className="guide-step">
-          <span className="guide-step-num">Langkah 3</span>
-          <span className="guide-step-title">Lihat hasil peringkat</span>
-          <span className="guide-step-text">
-            Sistem menghitung urutan terbaik otomatis, lalu Anda memilih kandidat yang lanjut.
-          </span>
-        </div>
-        <div className="guide-step">
-          <span className="guide-step-num">Langkah 4</span>
-          <span className="guide-step-title">Cetak laporan</span>
-          <span className="guide-step-text">
-            Simpan hasil akhir ke PDF atau Excel (CSV) sebagai dokumentasi seleksi.
-          </span>
-        </div>
-      </section>
-
       {/* Bagian 1: Daftar Calon Karyawan (Alternatif, minimal 4) */}
       <section className="cut-panel">
         <div className="panel-head">
           <div className="panel-head-text">
             <h2 className="panel-title">Daftar calon karyawan (minimal {MIN_ALTERNATIVES} pelamar)</h2>
             <p className="panel-subtitle">
-              Masukkan nilai tiap pelamar sesuai kriteria penilaian. Klik Tambah pelamar jika ingin memasukkan data baru.
+              Klik nama pelamar untuk membuka profil lengkap. Pendidikan menggunakan skala D3 = 1, S1 = 2, S2 = 3.
             </p>
           </div>
           <div className="action-row">
             <button
               type="button"
-              className="key"
+              className="key key--sm"
               onClick={() => {
                 if (showAltForm && !editingAltId) {
                   setShowAltForm(false);
@@ -276,13 +261,14 @@ export default function DataManagementTab({
                 }
               }}
             >
-              {showAltForm && !editingAltId ? 'Tutup formulir' : 'Tambah pelamar'}
+              <IconPlus />
+              <span>{showAltForm && !editingAltId ? 'Tutup form' : 'Tambah pelamar'}</span>
             </button>
-            <button type="button" className="key" onClick={onResetWorkspace}>
+            <button type="button" className="key key--sm" onClick={onResetWorkspace}>
               Reset contoh
             </button>
-            <button type="button" className="key key--primary" onClick={onNextTab}>
-              Lanjut: Atur prioritas
+            <button type="button" className="key key--primary key--sm" onClick={onNextTab}>
+              Atur prioritas
             </button>
           </div>
         </div>
@@ -371,40 +357,64 @@ export default function DataManagementTab({
 
               {criteria.map((c) => {
                 const errKey = `nilai.${c.id}`;
+                const hasOptions = Array.isArray(c.opsi) && c.opsi.length > 0;
                 return (
                   <div className="field" key={c.id}>
                     <label className="field-label" htmlFor={`alt-val-${c.id}`}>
                       {c.nama}{' '}
-                      <span className="field-unit">
-                        ({c.satuan})
-                      </span>
+                      <span className="field-unit">({c.satuan})</span>
                     </label>
-                    <input
-                      id={`alt-val-${c.id}`}
-                      className="input input--mono"
-                      type="number"
-                      min="0.01"
-                      step="any"
-                      value={altForm.nilai?.[c.id] ?? ''}
-                      aria-required="true"
-                      aria-invalid={Boolean(altErrors[errKey])}
-                      aria-describedby={`alt-val-${c.id}-help`}
-                      onChange={(e) =>
-                        setAltForm({
-                          ...altForm,
-                          nilai: { ...altForm.nilai, [c.id]: e.target.value },
-                        })
-                      }
-                      placeholder={c.tipe === 'cost' ? '7.5' : '80'}
-                    />
+                    {hasOptions ? (
+                      <select
+                        id={`alt-val-${c.id}`}
+                        className="select"
+                        value={altForm.nilai?.[c.id] ?? ''}
+                        aria-required="true"
+                        aria-invalid={Boolean(altErrors[errKey])}
+                        aria-describedby={`alt-val-${c.id}-help`}
+                        onChange={(e) =>
+                          setAltForm({
+                            ...altForm,
+                            nilai: { ...altForm.nilai, [c.id]: e.target.value },
+                          })
+                        }
+                      >
+                        {c.opsi.map((opt) => (
+                          <option key={opt.label} value={String(opt.nilai)}>
+                            {opt.label} (Skor {opt.nilai})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id={`alt-val-${c.id}`}
+                        className="input input--mono"
+                        type="number"
+                        min="0.01"
+                        step="any"
+                        value={altForm.nilai?.[c.id] ?? ''}
+                        aria-required="true"
+                        aria-invalid={Boolean(altErrors[errKey])}
+                        aria-describedby={`alt-val-${c.id}-help`}
+                        onChange={(e) =>
+                          setAltForm({
+                            ...altForm,
+                            nilai: { ...altForm.nilai, [c.id]: e.target.value },
+                          })
+                        }
+                        placeholder={c.tipe === 'cost' ? '7.5' : '80'}
+                      />
+                    )}
                     <span
                       id={`alt-val-${c.id}-help`}
                       className={`field-helper ${altErrors[errKey] ? 'is-error' : ''}`}
                     >
                       {altErrors[errKey] ||
-                        (c.tipe === 'cost'
-                          ? 'Makin kecil makin baik (angka > 0).'
-                          : 'Makin besar makin baik (angka > 0).')}
+                        (hasOptions
+                          ? 'Pilih jenjang pendidikan pelamar.'
+                          : c.tipe === 'cost'
+                            ? 'Makin kecil makin baik (angka > 0).'
+                            : 'Makin besar makin baik (angka > 0).')}
                     </span>
                   </div>
                 );
@@ -423,16 +433,16 @@ export default function DataManagementTab({
                   placeholder="Contoh: Komunikasi jelas, siap bergabung bulan depan"
                 />
                 <span className="field-helper">
-                  Catatan singkat ini membantu Anda saat memilih keputusan akhir nanti.
+                  Catatan singkat membantu Anda saat menetapkan keputusan akhir.
                 </span>
               </div>
             </div>
 
             <div className="action-row" style={{ marginTop: 'var(--space-sm)' }}>
-              <button type="submit" className="key key--primary">
+              <button type="submit" className="key key--primary key--sm">
                 {editingAltId ? 'Simpan perubahan' : 'Simpan pelamar'}
               </button>
-              <button type="button" className="key" onClick={handleCancelAlt}>
+              <button type="button" className="key key--sm" onClick={handleCancelAlt}>
                 Batal
               </button>
             </div>
@@ -440,8 +450,26 @@ export default function DataManagementTab({
         )}
 
         <div className="toolbar">
-          <h3>Tabel nilai pelamar ({alternatives.length} orang)</h3>
+          <h3>Matriks penilaian ({alternatives.length} pelamar)</h3>
           <div className="toolbar-controls">
+            <div className="topbar-method-switch" role="group" aria-label="Pilih tampilan daftar">
+              <button
+                type="button"
+                className="topbar-method-btn"
+                aria-pressed={viewMode === 'table'}
+                onClick={() => setViewMode('table')}
+              >
+                Tabel
+              </button>
+              <button
+                type="button"
+                className="topbar-method-btn"
+                aria-pressed={viewMode === 'cards'}
+                onClick={() => setViewMode('cards')}
+              >
+                Kartu
+              </button>
+            </div>
             <label htmlFor="search-alt" className="visually-hidden">
               Cari calon karyawan
             </label>
@@ -451,7 +479,7 @@ export default function DataManagementTab({
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari nama atau posisi"
+              placeholder="Saring nama atau posisi"
             />
             <label htmlFor="filter-pos" className="visually-hidden">
               Filter posisi
@@ -489,6 +517,82 @@ export default function DataManagementTab({
               setPosisiFilter('semua');
             }}
           />
+        ) : viewMode === 'cards' ? (
+          <div className="candidate-grid">
+            {filteredAlternatives.map((alt, idx) => (
+              <article
+                key={alt.id}
+                className="candidate-tile anim-row"
+                style={{ '--row-i': idx }}
+              >
+                <div className="candidate-tile-head">
+                  <button
+                    type="button"
+                    className="person-trigger"
+                    onClick={() => onInspectCandidate(alt.id)}
+                  >
+                    <span className="monogram" aria-hidden="true">
+                      {getInitials(alt.nama)}
+                    </span>
+                    <span>
+                      <span className="cell-primary">{alt.nama}</span>
+                      <span className="cell-secondary">
+                        {alt.kode}, {alt.posisi}
+                      </span>
+                    </span>
+                  </button>
+                  <span className={`decision-tag is-decision-${alt.keputusan || 'belum'}`}>
+                    {DECISION_LABELS[alt.keputusan] || DECISION_LABELS.belum}
+                  </span>
+                </div>
+
+                <dl className="candidate-metrics">
+                  {criteria.map((c) => {
+                    const hasOpt = Array.isArray(c.opsi) && c.opsi.length > 0;
+                    return (
+                      <div key={c.id} className="candidate-metric-item">
+                        <dt>
+                          {c.kode} {c.nama}
+                        </dt>
+                        <dd>
+                          {formatCriterionValue(c, alt.nilai?.[c.id])}{' '}
+                          {!hasOpt && <span>{c.satuan}</span>}
+                        </dd>
+                      </div>
+                    );
+                  })}
+                </dl>
+
+                {alt.catatanManusia && <p className="candidate-note">{alt.catatanManusia}</p>}
+
+                <div className="candidate-tile-foot">
+                  <button
+                    type="button"
+                    className="key key--sm"
+                    onClick={() => onInspectCandidate(alt.id)}
+                  >
+                    Detail
+                  </button>
+                  <div className="action-row">
+                    <button
+                      type="button"
+                      className="key key--sm"
+                      onClick={() => handleEditAlt(alt)}
+                    >
+                      Ubah
+                    </button>
+                    <button
+                      type="button"
+                      className="key key--sm key--danger"
+                      onClick={() => onDeleteAlternative(alt.id)}
+                    >
+                      Hapus
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         ) : (
           <div className="table-scroll">
             <table className="ledger-table">
@@ -514,6 +618,9 @@ export default function DataManagementTab({
                         className="person-trigger"
                         onClick={() => onInspectCandidate(alt.id)}
                       >
+                        <span className="monogram" aria-hidden="true">
+                          {getInitials(alt.nama)}
+                        </span>
                         <span>
                           <span className="cell-primary">{alt.nama}</span>
                           <span className="cell-secondary">{alt.posisi}</span>
@@ -522,7 +629,7 @@ export default function DataManagementTab({
                     </td>
                     {criteria.map((c) => (
                       <td key={c.id} className="col-num">
-                        {alt.nilai?.[c.id]}
+                        {formatCriterionValue(c, alt.nilai?.[c.id])}
                       </td>
                     ))}
                     <td>
@@ -547,19 +654,19 @@ export default function DataManagementTab({
         )}
       </section>
 
-      {/* Bagian 2: Syarat / Kriteria Penilaian (minimal 5) */}
+      {/* Bagian 2: Kriteria Penilaian (minimal 5) */}
       <section className="cut-panel">
         <div className="panel-head">
           <div className="panel-head-text">
             <h2 className="panel-title">Kriteria penilaian (minimal {MIN_CRITERIA} syarat)</h2>
             <p className="panel-subtitle">
-              Daftar aspek yang dinilai untuk setiap pelamar. Anda dapat memakai 5 kriteria bawaan ini atau mengubahnya sesuai kebutuhan lowongan.
+              Kelima kriteria standar seleksi karyawan: Pendidikan (D3, S1, S2), Pengalaman (Tahun), Nilai Tes Tulis, Nilai Wawancara, dan Gaji.
             </p>
           </div>
           <div className="action-row">
             <button
               type="button"
-              className="key"
+              className="key key--sm"
               onClick={() => {
                 if (showCritForm && !editingCritId) {
                   setShowCritForm(false);
@@ -571,7 +678,8 @@ export default function DataManagementTab({
                 }
               }}
             >
-              {showCritForm && !editingCritId ? 'Tutup formulir' : 'Tambah kriteria'}
+              <IconPlus />
+              <span>{showCritForm && !editingCritId ? 'Tutup form' : 'Tambah kriteria'}</span>
             </button>
           </div>
         </div>
@@ -631,7 +739,7 @@ export default function DataManagementTab({
                   aria-invalid={Boolean(critErrors.nama)}
                   aria-describedby="crit-nama-help"
                   onChange={(e) => setCritForm({ ...critForm, nama: e.target.value })}
-                  placeholder="Contoh: Kemampuan Komunikasi"
+                  placeholder="Contoh: Sertifikasi Keahlian"
                 />
                 <span id="crit-nama-help" className={`field-helper ${critErrors.nama ? 'is-error' : ''}`}>
                   {critErrors.nama || 'Aspek yang dibandingkan antar pelamar.'}
@@ -702,10 +810,10 @@ export default function DataManagementTab({
             </div>
 
             <div className="action-row" style={{ marginTop: 'var(--space-sm)' }}>
-              <button type="submit" className="key key--primary">
+              <button type="submit" className="key key--primary key--sm">
                 {editingCritId ? 'Simpan kriteria' : 'Tambah kriteria'}
               </button>
-              <button type="button" className="key" onClick={handleCancelCrit}>
+              <button type="button" className="key key--sm" onClick={handleCancelCrit}>
                 Batal
               </button>
             </div>
@@ -719,7 +827,7 @@ export default function DataManagementTab({
                 <th>Kode</th>
                 <th>Syarat penilaian</th>
                 <th>Arah penilaian</th>
-                <th>Satuan</th>
+                <th>Satuan / Skala</th>
                 <th className="col-num">Bobot</th>
                 <th>Aksi</th>
               </tr>
@@ -737,7 +845,11 @@ export default function DataManagementTab({
                       </span>
                     </span>
                   </td>
-                  <td>{c.satuan}</td>
+                  <td>
+                    {Array.isArray(c.opsi) && c.opsi.length > 0
+                      ? c.opsi.map((o) => `${o.label}=${o.nilai}`).join(', ')
+                      : c.satuan}
+                  </td>
                   <td className="col-num">{c.bobot}%</td>
                   <td>
                     <div className="action-row">

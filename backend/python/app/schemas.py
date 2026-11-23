@@ -1,9 +1,14 @@
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 CriterionType = Literal["benefit", "cost"]
 DecisionType = Literal["belum", "lanjut", "cadangan", "tolak"]
 MethodType = Literal["saw", "wp", "topsis", "all"]
+
+
+class CriterionOption(BaseModel):
+    label: str = Field(..., min_length=1)
+    nilai: float = Field(..., gt=0)
 
 
 class Metadata(BaseModel):
@@ -19,6 +24,7 @@ class Criterion(BaseModel):
     tipe: CriterionType
     bobot: float = Field(..., gt=0, le=100)
     satuan: str = Field(..., min_length=1)
+    opsi: Optional[List[CriterionOption]] = None
 
     @field_validator("kode")
     @classmethod
@@ -32,6 +38,7 @@ class CriterionCreate(BaseModel):
     tipe: CriterionType
     bobot: float = Field(..., gt=0, le=100)
     satuan: str = Field(..., min_length=1)
+    opsi: Optional[List[CriterionOption]] = None
 
     @field_validator("kode")
     @classmethod

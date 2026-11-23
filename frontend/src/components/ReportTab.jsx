@@ -6,7 +6,7 @@ import {
   detectDataIssues,
   getWeightSummary,
 } from '../models/spkEngine.js';
-import { EmptyState, IconDownload, IconPrint, IconWarn } from './StateViews.jsx';
+import { BrandLogo, EmptyState, IconDownload, IconPrint, IconWarn } from './StateViews.jsx';
 
 function triggerDownload(filename, content, mimeType) {
   const blob = new Blob([content], { type: mimeType });
@@ -162,14 +162,18 @@ export default function ReportTab({
         </div>
       </section>
 
-      <article className="cut-panel">
-        <div className="panel-head">
-          <div className="panel-head-text">
-            <h2 className="panel-title">
-              Laporan Hasil Keputusan: {workspace.metadata?.judulSeleksi || 'Seleksi Calon Karyawan'}
-            </h2>
-            <p className="panel-subtitle">{workspace.metadata?.catatanUmum}</p>
+      <article className="cut-panel report-sheet">
+        <div className="report-masthead">
+          <div className="brand-mark">
+            <BrandLogo />
+            <div>
+              <h2 className="panel-title">
+                Laporan Hasil Keputusan: {workspace.metadata?.judulSeleksi || 'Seleksi Calon Karyawan'}
+              </h2>
+              <p className="panel-subtitle">{workspace.metadata?.catatanUmum}</p>
+            </div>
           </div>
+          <span className="report-doc-code">SPK-{activeMethod.toUpperCase()}</span>
         </div>
 
         <dl className="report-meta-list">

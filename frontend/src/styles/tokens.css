@@ -59,6 +59,13 @@
   --color-chart-5: oklch(84.5% 0.072 339); /* Light Hot Pink / Lace */
   --color-chart-track: oklch(91.5% 0.028 343);
 
+  /* Heatmap intensity tiers (high-contrast ink paired per tier) */
+  --color-heat-1: oklch(96.5% 0.018 342);
+  --color-heat-2: oklch(92.0% 0.042 342);
+  --color-heat-3: oklch(85.0% 0.080 341);
+  --color-heat-4: oklch(58.0% 0.160 344);
+  --color-heat-5: oklch(46.0% 0.190 345);
+
   /* Typography */
   --font-display: "Familjen Grotesk", system-ui, -apple-system, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, -apple-system, sans-serif;

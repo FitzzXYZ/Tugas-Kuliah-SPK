@@ -20,6 +20,14 @@ def test_health_and_seed_workspace(tmp_path, monkeypatch):
     assert ws.status_code == 200
     data = ws.json()
     assert len(data["criteria"]) == 5
+    assert [c["nama"] for c in data["criteria"]] == [
+        "Pendidikan",
+        "Pengalaman",
+        "Nilai Tes Tulis",
+        "Nilai Wawancara",
+        "Gaji",
+    ]
+    assert [o["label"] for o in data["criteria"][0]["opsi"]] == ["D3", "S1", "S2"]
     assert len(data["alternatives"]) == 6
 
 
@@ -84,10 +92,10 @@ def test_calculate_matches_exact_saw_wp_topsis_reference(tmp_path, monkeypatch):
     assert body["topsis"]["rankings"][0]["kode"] == "A6"
 
     expected_a6_saw = (
-        0.3 * (82 / 90)
-        + 0.2 * (84 / 86)
-        + 0.2 * (4 / 4)
-        + 0.15 * (88 / 88)
+        0.20 * (3 / 3)
+        + 0.20 * (4 / 4)
+        + 0.25 * (82 / 90)
+        + 0.20 * (84 / 86)
         + 0.15 * (6.2 / 8.5)
     )
     assert math.isclose(body["saw"]["rankings"][0]["score"], expected_a6_saw, rel_tol=1e-6)

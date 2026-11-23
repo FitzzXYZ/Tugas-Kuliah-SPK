@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { METHOD_INFO } from '../models/spkEngine.js';
 import CandidateRadarChart from './CandidateRadarChart.jsx';
+import CriteriaHeatmap from './CriteriaHeatmap.jsx';
 import { EmptyState } from './StateViews.jsx';
 
 export default function VisualizationTab({
@@ -9,6 +10,7 @@ export default function VisualizationTab({
   activeMethod,
   calcResult,
   calcError,
+  onInspectCandidate,
   onGoToData,
   onNextTab,
 }) {
@@ -63,22 +65,31 @@ export default function VisualizationTab({
   const pSvgH = 24 + criteria.length * pRowH + 20;
 
   return (
-    <section className="cut-panel">
-      <div className="panel-head">
-        <div className="panel-head-text">
-          <h2 className="panel-title">Grafik perbandingan pelamar</h2>
+    <div className="stack-lg">
+      <section className="editorial-banner" aria-label="Ringkasan halaman visualisasi">
+        <img
+          className="editorial-banner-art"
+          src="/assets/rose-prism-banner.jpg"
+          width="1376"
+          height="768"
+          alt=""
+          aria-hidden="true"
+        />
+        <div className="editorial-banner-copy">
+          <h2 className="panel-title">Grafik dan peta panas perbandingan pelamar</h2>
           <p className="panel-subtitle">
-            Bandingkan hasil secara visual. Batang yang lebih panjang selalu menunjukkan nilai yang lebih unggul.
+            Bandingkan urutan skor, konsistensi 3 metode, profil radar, dan peta panas seluruh kriteria secara visual dalam satu ruang analisis.
           </p>
+          <div className="action-row" style={{ marginTop: 'var(--space-sm)' }}>
+            <button type="button" className="key key--primary key--sm" onClick={onNextTab}>
+              Lanjut: Laporan
+            </button>
+          </div>
         </div>
-        <div className="action-row">
-          <button type="button" className="key key--primary" onClick={onNextTab}>
-            Lanjut: Laporan
-          </button>
-        </div>
-      </div>
+      </section>
 
-      <div className="chart-grid">
+      <section className="cut-panel">
+        <div className="chart-grid">
         {/* Grafik 1 */}
         <div className="chart-block chart-block-full">
           <h3 className="chart-title">Urutan nilai akhir pelamar ({methodInfo.nama})</h3>
@@ -351,7 +362,21 @@ export default function VisualizationTab({
             candidateName={rowA ? rowA.nama : ''}
           />
         </div>
+
+        {/* Grafik 5: Peta Panas (Heatmap) Semua Pelamar × Semua Kriteria */}
+        <div className="chart-block chart-block-full">
+          <h3 className="chart-title">Peta panas performa seluruh pelamar pada semua kriteria</h3>
+          <p className="chart-caption">
+            Cara membaca: sel berwarna rose makin pekat berarti nilai pelamar makin mendekati yang terbaik (100%). Klik nama pelamar untuk membuka profil lengkapnya.
+          </p>
+          <CriteriaHeatmap
+            criteria={criteria}
+            sawResult={calcResult.saw}
+            onInspectCandidate={onInspectCandidate}
+          />
+        </div>
       </div>
-    </section>
+      </section>
+    </div>
   );
 }

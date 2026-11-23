@@ -1,0 +1,19 @@
+[project]
+name = "spk-seleksi-karyawan-backend"
+version = "1.0.0"
+description = "Backend FastAPI SPK Seleksi Calon Karyawan dengan jembatan engine Rust"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115.0",
+  "pydantic>=2.10.0",
+  "uvicorn>=0.34.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28.0",
+  "pytest>=8.3.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

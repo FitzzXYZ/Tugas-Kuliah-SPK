@@ -1,0 +1,40 @@
+# Node & Frontend (React / Vite)
+node_modules/
+dist/
+dist-ssr/
+.vite/
+npm-debug.log*
+*.local
+
+# Python & Backend (FastAPI / uv / pytest)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Rust (Cargo)
+backend/rust/target/
+**/*.rs.bk
+
+# Runtime data & local caches
+backend/data/workspace.json
+backend/data/*.tmp
+.hallmark/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Logs, OS & editors
+*.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp

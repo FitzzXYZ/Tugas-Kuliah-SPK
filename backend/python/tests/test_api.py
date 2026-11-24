@@ -27,7 +27,7 @@ def test_health_and_seed_workspace(tmp_path, monkeypatch):
         "Nilai Wawancara",
         "Gaji",
     ]
-    assert [o["label"] for o in data["criteria"][0]["opsi"]] == ["D3", "S1", "S2"]
+    assert [o["label"] for o in data["criteria"][0]["opsi"]] == ["SMP", "SMA", "D3", "S1", "S2"]
     assert len(data["alternatives"]) == 6
 
 
@@ -92,7 +92,7 @@ def test_calculate_matches_exact_saw_wp_topsis_reference(tmp_path, monkeypatch):
     assert body["topsis"]["rankings"][0]["kode"] == "A6"
 
     expected_a6_saw = (
-        0.20 * (3 / 3)
+        0.20 * (5 / 5)
         + 0.20 * (4 / 4)
         + 0.25 * (82 / 90)
         + 0.20 * (84 / 86)

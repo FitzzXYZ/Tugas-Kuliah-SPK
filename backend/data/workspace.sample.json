@@ -2,7 +2,7 @@
   "metadata": {
     "judulSeleksi": "Seleksi Calon Karyawan Divisi Engineering",
     "penanggungJawab": "Pengelola / Tim Rekrutmen",
-    "catatanUmum": "Data awal merupakan ilustrasi pembelajaran SPK (bukan data pelamar nyata). Skala Pendidikan: D3 = 1, S1 = 2, S2 = 3."
+    "catatanUmum": "Data awal merupakan ilustrasi pembelajaran SPK (bukan data pelamar nyata). Skala Pendidikan: SMP = 1, SMA = 2, D3 = 3, S1 = 4, S2 = 5."
   },
   "criteria": [
     {
@@ -11,11 +11,13 @@
       "nama": "Pendidikan",
       "tipe": "benefit",
       "bobot": 20,
-      "satuan": "D3/S1/S2",
+      "satuan": "SMP/SMA/D3/S1/S2",
       "opsi": [
-        { "label": "D3", "nilai": 1 },
-        { "label": "S1", "nilai": 2 },
-        { "label": "S2", "nilai": 3 }
+        { "label": "SMP", "nilai": 1 },
+        { "label": "SMA", "nilai": 2 },
+        { "label": "D3", "nilai": 3 },
+        { "label": "S1", "nilai": 4 },
+        { "label": "S2", "nilai": 5 }
       ]
     },
     {
@@ -58,7 +60,7 @@
       "nama": "Alya Pratama",
       "posisi": "Frontend Developer",
       "nilai": {
-        "c1": 2,
+        "c1": 4,
         "c2": 2,
         "c3": 84,
         "c4": 80,
@@ -73,7 +75,7 @@
       "nama": "Bagas Nugroho",
       "posisi": "Backend Developer",
       "nilai": {
-        "c1": 3,
+        "c1": 5,
         "c2": 3,
         "c3": 90,
         "c4": 76,
@@ -88,7 +90,7 @@
       "nama": "Citra Lestari",
       "posisi": "Frontend Developer",
       "nilai": {
-        "c1": 1,
+        "c1": 3,
         "c2": 1,
         "c3": 74,
         "c4": 86,
@@ -103,7 +105,7 @@
       "nama": "Dimas Saputra",
       "posisi": "QA Engineer",
       "nilai": {
-        "c1": 2,
+        "c1": 4,
         "c2": 2,
         "c3": 78,
         "c4": 74,
@@ -118,7 +120,7 @@
       "nama": "Eka Putri",
       "posisi": "Backend Developer",
       "nilai": {
-        "c1": 1,
+        "c1": 2,
         "c2": 1,
         "c3": 66,
         "c4": 72,
@@ -133,7 +135,7 @@
       "nama": "Farhan Hakim",
       "posisi": "Fullstack Developer",
       "nilai": {
-        "c1": 3,
+        "c1": 5,
         "c2": 4,
         "c3": 82,
         "c4": 84,

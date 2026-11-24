@@ -668,7 +668,7 @@ mod tests {
         assert_eq!(res.wp.rankings[0].kode, "A6");
         assert_eq!(res.topsis.rankings[0].kode, "A6");
 
-        let expected_a6_saw = 0.20 * (3.0 / 3.0)
+        let expected_a6_saw = 0.20 * (5.0 / 5.0)
             + 0.20 * (4.0 / 4.0)
             + 0.25 * (82.0 / 90.0)
             + 0.20 * (84.0 / 86.0)

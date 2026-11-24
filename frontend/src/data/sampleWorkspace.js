@@ -1,11 +1,11 @@
 // Data ilustrasi pembelajaran SPK (selaras dengan backend/data/workspace.sample.json).
-// Skala Pendidikan: D3 = 1, S1 = 2, S2 = 3.
+// Skala Pendidikan: SMP = 1, SMA = 2, D3 = 3, S1 = 4, S2 = 5.
 export const SAMPLE_WORKSPACE = {
   metadata: {
     judulSeleksi: 'Seleksi Calon Karyawan Divisi Engineering',
     penanggungJawab: 'Pengelola / Tim Rekrutmen',
     catatanUmum:
-      'Data awal merupakan ilustrasi pembelajaran SPK (bukan data pelamar nyata). Skala Pendidikan: D3 = 1, S1 = 2, S2 = 3.',
+      'Data awal merupakan ilustrasi pembelajaran SPK (bukan data pelamar nyata). Skala Pendidikan: SMP = 1, SMA = 2, D3 = 3, S1 = 4, S2 = 5.',
   },
   criteria: [
     {
@@ -14,11 +14,13 @@ export const SAMPLE_WORKSPACE = {
       nama: 'Pendidikan',
       tipe: 'benefit',
       bobot: 20,
-      satuan: 'D3/S1/S2',
+      satuan: 'SMP/SMA/D3/S1/S2',
       opsi: [
-        { label: 'D3', nilai: 1 },
-        { label: 'S1', nilai: 2 },
-        { label: 'S2', nilai: 3 },
+        { label: 'SMP', nilai: 1 },
+        { label: 'SMA', nilai: 2 },
+        { label: 'D3', nilai: 3 },
+        { label: 'S1', nilai: 4 },
+        { label: 'S2', nilai: 5 },
       ],
     },
     {
@@ -60,7 +62,7 @@ export const SAMPLE_WORKSPACE = {
       kode: 'A1',
       nama: 'Alya Pratama',
       posisi: 'Frontend Developer',
-      nilai: { c1: 2, c2: 2, c3: 84, c4: 80, c5: 7.5 },
+      nilai: { c1: 4, c2: 2, c3: 84, c4: 80, c5: 7.5 },
       keputusan: 'belum',
       catatanManusia: 'Lulusan S1 dengan komunikasi jelas saat wawancara teknis.',
     },
@@ -69,7 +71,7 @@ export const SAMPLE_WORKSPACE = {
       kode: 'A2',
       nama: 'Bagas Nugroho',
       posisi: 'Backend Developer',
-      nilai: { c1: 3, c2: 3, c3: 90, c4: 76, c5: 9.5 },
+      nilai: { c1: 5, c2: 3, c3: 90, c4: 76, c5: 9.5 },
       keputusan: 'belum',
       catatanManusia: 'Lulusan S2, nilai tes tulis tertinggi, ekspektasi gaji relatif tinggi.',
     },
@@ -78,7 +80,7 @@ export const SAMPLE_WORKSPACE = {
       kode: 'A3',
       nama: 'Citra Lestari',
       posisi: 'Frontend Developer',
-      nilai: { c1: 1, c2: 1, c3: 74, c4: 86, c5: 6.5 },
+      nilai: { c1: 3, c2: 1, c3: 74, c4: 86, c5: 6.5 },
       keputusan: 'belum',
       catatanManusia: 'Lulusan D3, sangat komunikatif saat wawancara dan cepat belajar.',
     },
@@ -87,7 +89,7 @@ export const SAMPLE_WORKSPACE = {
       kode: 'A4',
       nama: 'Dimas Saputra',
       posisi: 'QA Engineer',
-      nilai: { c1: 2, c2: 2, c3: 78, c4: 74, c5: 7.0 },
+      nilai: { c1: 4, c2: 2, c3: 78, c4: 74, c5: 7.0 },
       keputusan: 'belum',
       catatanManusia: 'Lulusan S1, teliti menyusun skenario uji otomatis.',
     },
@@ -96,7 +98,7 @@ export const SAMPLE_WORKSPACE = {
       kode: 'A5',
       nama: 'Eka Putri',
       posisi: 'Backend Developer',
-      nilai: { c1: 1, c2: 1, c3: 66, c4: 72, c5: 6.2 },
+      nilai: { c1: 2, c2: 1, c3: 66, c4: 72, c5: 6.2 },
       keputusan: 'belum',
       catatanManusia: '',
     },
@@ -105,7 +107,7 @@ export const SAMPLE_WORKSPACE = {
       kode: 'A6',
       nama: 'Farhan Hakim',
       posisi: 'Fullstack Developer',
-      nilai: { c1: 3, c2: 4, c3: 82, c4: 84, c5: 8.5 },
+      nilai: { c1: 5, c2: 4, c3: 82, c4: 84, c5: 8.5 },
       keputusan: 'belum',
       catatanManusia: 'Lulusan S2 berpengalaman 4 tahun, pernah memimpin rilis aplikasi internal.',
     },

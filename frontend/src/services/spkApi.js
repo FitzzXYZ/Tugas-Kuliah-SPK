@@ -1,7 +1,7 @@
 import { SAMPLE_WORKSPACE } from '../data/sampleWorkspace.js';
 import { calculateAllMethods } from '../models/spkEngine.js';
 
-const STORAGE_KEY = 'spk_seleksi_karyawan_workspace_v3';
+const STORAGE_KEY = 'spk_seleksi_karyawan_workspace_v4';
 
 function resolveApiBaseUrl() {
   if (typeof window === 'undefined') return '';
@@ -54,11 +54,34 @@ function writeLocalWorkspace(workspace) {
   }
 }
 
+function isServerUnreachableError(err) {
+  if (!err) return false;
+  if (err.isUnreachable) return true;
+  if (err instanceof TypeError) return true;
+  const msg = String(err.message || '');
+  return /failed to fetch|networkerror|load failed|502|503|504/i.test(msg);
+}
+
 async function requestJson(url, options = {}) {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
+    });
+  } catch (networkErr) {
+    const err = new Error('Server backend tidak dapat dijangkau.');
+    err.isUnreachable = true;
+    err.cause = networkErr;
+    throw err;
+  }
+
+  if (response.status === 502 || response.status === 503 || response.status === 504) {
+    const err = new Error(`Server backend belum aktif (HTTP ${response.status}).`);
+    err.isUnreachable = true;
+    throw err;
+  }
+
   if (!response.ok) {
     let detail = `HTTP ${response.status}`;
     try {
@@ -94,43 +117,74 @@ export function getApiConnection() {
 export async function fetchWorkspace() {
   const conn = getApiConnection();
   if (conn.mode === 'remote') {
-    return requestJson(`${conn.baseUrl}/workspace`);
+    try {
+      const data = await requestJson(`${conn.baseUrl}/workspace`);
+      writeLocalWorkspace(data);
+      return { workspace: data, fallbackOffline: false };
+    } catch (err) {
+      if (isServerUnreachableError(err)) {
+        // Fallback otomatis ke penyimpanan browser agar aplikasi tidak pernah layar kosong "Failed to fetch".
+        return { workspace: readLocalWorkspace(), fallbackOffline: true };
+      }
+      throw err;
+    }
   }
-  return readLocalWorkspace();
+  return { workspace: readLocalWorkspace(), fallbackOffline: false };
 }
 
 export async function saveWorkspace(workspace) {
   const conn = getApiConnection();
-  if (conn.mode === 'remote') {
-    return requestJson(`${conn.baseUrl}/workspace`, {
-      method: 'PUT',
-      body: JSON.stringify(workspace),
-    });
-  }
   writeLocalWorkspace(workspace);
-  return structuredClone(workspace);
+  if (conn.mode === 'remote') {
+    try {
+      const saved = await requestJson(`${conn.baseUrl}/workspace`, {
+        method: 'PUT',
+        body: JSON.stringify(workspace),
+      });
+      return { workspace: saved, fallbackOffline: false };
+    } catch (err) {
+      if (isServerUnreachableError(err)) {
+        return { workspace: structuredClone(workspace), fallbackOffline: true };
+      }
+      throw err;
+    }
+  }
+  return { workspace: structuredClone(workspace), fallbackOffline: false };
 }
 
 export async function resetWorkspace() {
   const conn = getApiConnection();
   if (conn.mode === 'remote') {
-    return requestJson(`${conn.baseUrl}/workspace/reset`, { method: 'POST' });
+    try {
+      const seed = await requestJson(`${conn.baseUrl}/workspace/reset`, { method: 'POST' });
+      writeLocalWorkspace(seed);
+      return { workspace: seed, fallbackOffline: false };
+    } catch (err) {
+      if (!isServerUnreachableError(err)) throw err;
+    }
   }
   const seed = structuredClone(SAMPLE_WORKSPACE);
   writeLocalWorkspace(seed);
-  return seed;
+  return { workspace: seed, fallbackOffline: conn.mode === 'remote' };
 }
 
 export async function calculateWorkspace(alternatives, criteria) {
   const conn = getApiConnection();
   if (conn.mode === 'remote') {
-    const res = await requestJson(`${conn.baseUrl}/calculate`, {
-      method: 'POST',
-      body: JSON.stringify({ alternatives, criteria, method: 'all' }),
-    });
-    return { ...res, source: res.engine || 'backend' };
+    try {
+      const res = await requestJson(`${conn.baseUrl}/calculate`, {
+        method: 'POST',
+        body: JSON.stringify({ alternatives, criteria, method: 'all' }),
+      });
+      return { ...res, source: res.engine || 'backend', fallbackOffline: false };
+    } catch (err) {
+      if (isServerUnreachableError(err)) {
+        const computed = calculateAllMethods(alternatives, criteria);
+        return { ...computed, source: 'browser-js (offline fallback)', fallbackOffline: true };
+      }
+      throw err;
+    }
   }
   const computed = calculateAllMethods(alternatives, criteria);
-  return { ...computed, source: 'browser-js' };
+  return { ...computed, source: 'browser-js', fallbackOffline: false };
 }
-

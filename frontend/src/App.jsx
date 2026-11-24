@@ -36,6 +36,7 @@ export default function App() {
   const [calcError, setCalcError] = useState('');
   const [loading, setLoading] = useState(true);
   const [banner, setBanner] = useState(null);
+  const [serverOnline, setServerOnline] = useState(connection.mode === 'remote');
   const [inspectedId, setInspectedId] = useState(null);
   const [quickAddSignal, setQuickAddSignal] = useState(0);
   const [requestedEdit, setRequestedEdit] = useState({ id: null, seq: 0 });
@@ -51,9 +52,19 @@ export default function App() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchWorkspace();
+      const { workspace: data, fallbackOffline } = await fetchWorkspace();
       setWorkspace(data);
-      setBanner(null);
+      setServerOnline(connection.mode === 'remote' && !fallbackOffline);
+      if (fallbackOffline) {
+        setBanner({
+          type: 'warn',
+          message:
+            'Server backend (port 8000) belum aktif. Aplikasi otomatis berjalan menggunakan data lokal browser.',
+          retryable: true,
+        });
+      } else {
+        setBanner(null);
+      }
     } catch (err) {
       setBanner({
         type: 'error',
@@ -63,7 +74,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [connection.mode]);
 
   useEffect(() => {
     loadAll();
@@ -86,6 +97,9 @@ export default function App() {
         if (!cancelled) {
           setCalcResult(computed);
           setCalcError('');
+          if (connection.mode === 'remote') {
+            setServerOnline(!computed.fallbackOffline);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -110,8 +124,9 @@ export default function App() {
   async function persistNext(nextWorkspace) {
     setWorkspace(nextWorkspace);
     try {
-      const saved = await saveWorkspace(nextWorkspace);
+      const { workspace: saved, fallbackOffline } = await saveWorkspace(nextWorkspace);
       setWorkspace(saved);
+      setServerOnline(connection.mode === 'remote' && !fallbackOffline);
     } catch (err) {
       setBanner({
         type: 'error',
@@ -222,8 +237,9 @@ export default function App() {
   async function handleResetWorkspace() {
     undoSnapshotRef.current = structuredClone(workspace);
     try {
-      const seed = await resetWorkspace();
+      const { workspace: seed, fallbackOffline } = await resetWorkspace();
       setWorkspace(seed);
+      setServerOnline(connection.mode === 'remote' && !fallbackOffline);
       setInspectedId(null);
       setBanner({
         type: 'pass',
@@ -277,7 +293,7 @@ export default function App() {
         critCount={workspace?.criteria?.length || 0}
         weightTotal={weightSummary.rawTotal}
         isExact100={weightSummary.isExact100}
-        isRemote={connection.mode === 'remote'}
+        isRemote={serverOnline}
         leaderSummary={leaderSummary}
         quickCandidates={workspace?.alternatives || []}
         onInspectLeader={setInspectedId}

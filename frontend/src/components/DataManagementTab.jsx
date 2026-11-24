@@ -28,10 +28,17 @@ function nextCode(prefix, list) {
   return `${prefix}${maxNum + 1}`;
 }
 
+function defaultOptionValue(c) {
+  if (!Array.isArray(c.opsi) || c.opsi.length === 0) return '';
+  const s1 = c.opsi.find((o) => o.label.toUpperCase() === 'S1');
+  if (s1) return String(s1.nilai);
+  return String(c.opsi[Math.floor(c.opsi.length / 2)].nilai);
+}
+
 function createEmptyAltForm(criteria, alternatives) {
   const nilai = {};
   for (const c of criteria) {
-    nilai[c.id] = Array.isArray(c.opsi) && c.opsi.length > 0 ? String(c.opsi[Math.min(1, c.opsi.length - 1)].nilai) : '';
+    nilai[c.id] = defaultOptionValue(c);
   }
   return {
     id: '',
@@ -89,9 +96,7 @@ export default function DataManagementTab({
     setAltForm((prev) => {
       const nextNilai = {};
       for (const c of criteria) {
-        const fallback =
-          Array.isArray(c.opsi) && c.opsi.length > 0 ? String(c.opsi[Math.min(1, c.opsi.length - 1)].nilai) : '';
-        nextNilai[c.id] = prev.nilai?.[c.id] ?? fallback;
+        nextNilai[c.id] = prev.nilai?.[c.id] ?? defaultOptionValue(c);
       }
       return { ...prev, nilai: nextNilai };
     });
@@ -243,7 +248,7 @@ export default function DataManagementTab({
           <div className="panel-head-text">
             <h2 className="panel-title">Daftar calon karyawan (minimal {MIN_ALTERNATIVES} pelamar)</h2>
             <p className="panel-subtitle">
-              Klik nama pelamar untuk membuka profil lengkap. Pendidikan menggunakan skala D3 = 1, S1 = 2, S2 = 3.
+              Klik nama pelamar untuk membuka profil lengkap. Pendidikan menggunakan skala SMP = 1, SMA = 2, D3 = 3, S1 = 4, S2 = 5.
             </p>
           </div>
           <div className="action-row">
@@ -660,7 +665,7 @@ export default function DataManagementTab({
           <div className="panel-head-text">
             <h2 className="panel-title">Kriteria penilaian (minimal {MIN_CRITERIA} syarat)</h2>
             <p className="panel-subtitle">
-              Kelima kriteria standar seleksi karyawan: Pendidikan (D3, S1, S2), Pengalaman (Tahun), Nilai Tes Tulis, Nilai Wawancara, dan Gaji.
+              Kelima kriteria standar seleksi karyawan: Pendidikan (SMP, SMA, D3, S1, S2), Pengalaman (Tahun), Nilai Tes Tulis, Nilai Wawancara, dan Gaji.
             </p>
           </div>
           <div className="action-row">

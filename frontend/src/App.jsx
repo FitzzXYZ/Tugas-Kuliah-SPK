@@ -24,11 +24,20 @@ import {
 const VALID_TAB_IDS = new Set(TABS.map((t) => t.id));
 
 function readTabFromHash() {
+  if (typeof window === 'undefined') return 'dashboard';
   const raw = window.location.hash.replace(/^#/, '');
   return VALID_TAB_IDS.has(raw) ? raw : 'dashboard';
 }
 
+function makeEntityId(prefix) {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return `${prefix}-${globalThis.crypto.randomUUID().slice(0, 8)}`;
+  }
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
 export default function App() {
+  const connection = getApiConnection();
   const [activeTab, setActiveTab] = useState(readTabFromHash);
   const [activeMethod, setActiveMethod] = useState('saw');
   const [workspace, setWorkspace] = useState(null);
@@ -38,8 +47,7 @@ export default function App() {
   const [banner, setBanner] = useState(null);
   const [serverOnline, setServerOnline] = useState(connection.mode === 'remote');
   const [inspectedId, setInspectedId] = useState(null);
-  const [quickAddSignal, setQuickAddSignal] = useState(0);
-  const [requestedEdit, setRequestedEdit] = useState({ id: null, seq: 0 });
+  const [dataIntent, setDataIntent] = useState(null);
   const [checklist, setChecklist] = useState({
     dataValid: false,
     asumsiSesuai: false,
@@ -47,12 +55,14 @@ export default function App() {
   });
 
   const undoSnapshotRef = useRef(null);
-  const connection = getApiConnection();
+  const saveSeqRef = useRef(0);
 
   const loadAll = useCallback(async () => {
+    const reqId = ++saveSeqRef.current;
     setLoading(true);
     try {
-      const { workspace: data, fallbackOffline } = await fetchWorkspace();
+      const { workspace: data, fallbackOffline, syncedOfflineEdits } = await fetchWorkspace();
+      if (reqId !== saveSeqRef.current) return;
       setWorkspace(data);
       setServerOnline(connection.mode === 'remote' && !fallbackOffline);
       if (fallbackOffline) {
@@ -62,17 +72,25 @@ export default function App() {
             'Server backend (port 8000) belum aktif. Aplikasi otomatis berjalan menggunakan data lokal browser.',
           retryable: true,
         });
+      } else if (syncedOfflineEdits) {
+        setBanner({
+          type: 'pass',
+          message: 'Koneksi backend pulih. Perubahan selama mode offline berhasil disinkronkan ke server.',
+        });
       } else {
         setBanner(null);
       }
     } catch (err) {
+      if (reqId !== saveSeqRef.current) return;
       setBanner({
         type: 'error',
         message: err.message || 'Gagal memuat data workspace.',
         retryable: true,
       });
     } finally {
-      setLoading(false);
+      if (reqId === saveSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, [connection.mode]);
 
@@ -122,12 +140,15 @@ export default function App() {
   }
 
   async function persistNext(nextWorkspace) {
+    const reqId = ++saveSeqRef.current;
     setWorkspace(nextWorkspace);
     try {
       const { workspace: saved, fallbackOffline } = await saveWorkspace(nextWorkspace);
+      if (reqId !== saveSeqRef.current) return;
       setWorkspace(saved);
       setServerOnline(connection.mode === 'remote' && !fallbackOffline);
     } catch (err) {
+      if (reqId !== saveSeqRef.current) return;
       setBanner({
         type: 'error',
         message: err.message || 'Perubahan gagal disimpan ke server.',
@@ -145,7 +166,7 @@ export default function App() {
   }
 
   function handleAddCriterion(crit) {
-    const created = { ...crit, id: `c-${Date.now().toString(36)}` };
+    const created = { ...crit, id: makeEntityId('c') };
     const nextCriteria = [...workspace.criteria, created];
     const nextAlternatives = syncAlternativesWithCriteria(
       workspace.alternatives,
@@ -175,7 +196,7 @@ export default function App() {
   }
 
   function handleAddAlternative(alt) {
-    const created = { ...alt, id: `a-${Date.now().toString(36)}` };
+    const created = { ...alt, id: makeEntityId('a') };
     persistNext({ ...workspace, alternatives: [...workspace.alternatives, created] });
   }
 
@@ -235,9 +256,11 @@ export default function App() {
   }
 
   async function handleResetWorkspace() {
+    const reqId = ++saveSeqRef.current;
     undoSnapshotRef.current = structuredClone(workspace);
     try {
       const { workspace: seed, fallbackOffline } = await resetWorkspace();
+      if (reqId !== saveSeqRef.current) return;
       setWorkspace(seed);
       setServerOnline(connection.mode === 'remote' && !fallbackOffline);
       setInspectedId(null);
@@ -247,6 +270,7 @@ export default function App() {
         undoable: true,
       });
     } catch (err) {
+      if (reqId !== saveSeqRef.current) return;
       setBanner({
         type: 'error',
         message: err.message || 'Gagal memuat ulang data contoh.',
@@ -256,12 +280,12 @@ export default function App() {
 
   function handleQuickAddCandidate() {
     selectTab('data');
-    setQuickAddSignal((n) => n + 1);
+    setDataIntent({ mode: 'add' });
   }
 
   function handleRequestEditCandidate(altId) {
     selectTab('data');
-    setRequestedEdit((prev) => ({ id: altId, seq: prev.seq + 1 }));
+    setDataIntent({ mode: 'edit', id: altId });
   }
 
   const weightSummary = getWeightSummary(workspace?.criteria || []);
@@ -328,8 +352,8 @@ export default function App() {
               <DataManagementTab
                 criteria={workspace.criteria}
                 alternatives={workspace.alternatives}
-                quickAddSignal={quickAddSignal}
-                requestedEdit={requestedEdit}
+                dataIntent={dataIntent}
+                onConsumeIntent={() => setDataIntent(null)}
                 onAddCriterion={handleAddCriterion}
                 onUpdateCriterion={handleUpdateCriterion}
                 onDeleteCriterion={handleDeleteCriterion}

@@ -2,6 +2,7 @@ import { SAMPLE_WORKSPACE } from '../data/sampleWorkspace.js';
 import { calculateAllMethods } from '../models/spkEngine.js';
 
 const STORAGE_KEY = 'spk_seleksi_karyawan_workspace_v4';
+const OFFLINE_DIRTY_KEY = 'spk_seleksi_karyawan_dirty_offline_v4';
 
 function resolveApiBaseUrl() {
   if (typeof window === 'undefined') return '';
@@ -26,6 +27,28 @@ function resolveApiBaseUrl() {
 }
 
 let memoryWorkspace = structuredClone(SAMPLE_WORKSPACE);
+let memoryDirtyOffline = false;
+
+function isOfflineDirty() {
+  try {
+    return window.localStorage.getItem(OFFLINE_DIRTY_KEY) === '1';
+  } catch {
+    return memoryDirtyOffline;
+  }
+}
+
+function setOfflineDirty(dirty) {
+  memoryDirtyOffline = Boolean(dirty);
+  try {
+    if (dirty) {
+      window.localStorage.setItem(OFFLINE_DIRTY_KEY, '1');
+    } else {
+      window.localStorage.removeItem(OFFLINE_DIRTY_KEY);
+    }
+  } catch {
+    // Tetap gunakan penanda memori bila localStorage diblokir.
+  }
+}
 
 function readLocalWorkspace() {
   try {
@@ -118,37 +141,52 @@ export async function fetchWorkspace() {
   const conn = getApiConnection();
   if (conn.mode === 'remote') {
     try {
+      // Kirim perubahan yang dibuat saat offline terlebih dulu agar tidak tertimpa data lama server.
+      if (isOfflineDirty()) {
+        const localData = readLocalWorkspace();
+        const synced = await requestJson(`${conn.baseUrl}/workspace`, {
+          method: 'PUT',
+          body: JSON.stringify(localData),
+        });
+        writeLocalWorkspace(synced);
+        setOfflineDirty(false);
+        return { workspace: synced, fallbackOffline: false, syncedOfflineEdits: true };
+      }
       const data = await requestJson(`${conn.baseUrl}/workspace`);
       writeLocalWorkspace(data);
-      return { workspace: data, fallbackOffline: false };
+      return { workspace: data, fallbackOffline: false, syncedOfflineEdits: false };
     } catch (err) {
       if (isServerUnreachableError(err)) {
         // Fallback otomatis ke penyimpanan browser agar aplikasi tidak pernah layar kosong "Failed to fetch".
-        return { workspace: readLocalWorkspace(), fallbackOffline: true };
+        return { workspace: readLocalWorkspace(), fallbackOffline: true, syncedOfflineEdits: false };
       }
       throw err;
     }
   }
-  return { workspace: readLocalWorkspace(), fallbackOffline: false };
+  return { workspace: readLocalWorkspace(), fallbackOffline: false, syncedOfflineEdits: false };
 }
 
 export async function saveWorkspace(workspace) {
   const conn = getApiConnection();
-  writeLocalWorkspace(workspace);
   if (conn.mode === 'remote') {
     try {
       const saved = await requestJson(`${conn.baseUrl}/workspace`, {
         method: 'PUT',
         body: JSON.stringify(workspace),
       });
+      writeLocalWorkspace(saved);
+      setOfflineDirty(false);
       return { workspace: saved, fallbackOffline: false };
     } catch (err) {
       if (isServerUnreachableError(err)) {
+        writeLocalWorkspace(workspace);
+        setOfflineDirty(true);
         return { workspace: structuredClone(workspace), fallbackOffline: true };
       }
       throw err;
     }
   }
+  writeLocalWorkspace(workspace);
   return { workspace: structuredClone(workspace), fallbackOffline: false };
 }
 
@@ -158,6 +196,7 @@ export async function resetWorkspace() {
     try {
       const seed = await requestJson(`${conn.baseUrl}/workspace/reset`, { method: 'POST' });
       writeLocalWorkspace(seed);
+      setOfflineDirty(false);
       return { workspace: seed, fallbackOffline: false };
     } catch (err) {
       if (!isServerUnreachableError(err)) throw err;
@@ -165,6 +204,9 @@ export async function resetWorkspace() {
   }
   const seed = structuredClone(SAMPLE_WORKSPACE);
   writeLocalWorkspace(seed);
+  if (conn.mode === 'remote') {
+    setOfflineDirty(true);
+  }
   return { workspace: seed, fallbackOffline: conn.mode === 'remote' };
 }
 

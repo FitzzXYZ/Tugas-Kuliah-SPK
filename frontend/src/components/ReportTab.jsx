@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   DECISION_LABELS,
   METHOD_INFO,
@@ -32,6 +32,24 @@ export default function ReportTab({
   onGoToData,
   onReviewWeights,
 }) {
+  const [metaDraft, setMetaDraft] = useState({
+    judulSeleksi: workspace.metadata?.judulSeleksi || '',
+    penanggungJawab: workspace.metadata?.penanggungJawab || '',
+    catatanUmum: workspace.metadata?.catatanUmum || '',
+  });
+
+  useEffect(() => {
+    setMetaDraft({
+      judulSeleksi: workspace.metadata?.judulSeleksi || '',
+      penanggungJawab: workspace.metadata?.penanggungJawab || '',
+      catatanUmum: workspace.metadata?.catatanUmum || '',
+    });
+  }, [
+    workspace.metadata?.judulSeleksi,
+    workspace.metadata?.penanggungJawab,
+    workspace.metadata?.catatanUmum,
+  ]);
+
   if (calcError || !calcResult) {
     return (
       <section className="cut-panel">
@@ -50,11 +68,19 @@ export default function ReportTab({
   const weightSummary = getWeightSummary(workspace.criteria);
   const issues = detectDataIssues(workspace.alternatives, workspace.criteria);
   const compById = Object.fromEntries(calcResult.comparison.map((r) => [r.id, r]));
+  const altById = Object.fromEntries(workspace.alternatives.map((a) => [a.id, a]));
   const todayText = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
+
+  function commitMetadataField(field) {
+    const current = workspace.metadata?.[field] || '';
+    if (metaDraft[field] !== current) {
+      onUpdateMetadata({ [field]: metaDraft[field] });
+    }
+  }
 
   function handleExportCsv() {
     const csv = buildDecisionCsv(workspace, activeData, activeMethod);
@@ -65,19 +91,22 @@ export default function ReportTab({
   function handleExportJson() {
     const payload = {
       dibuatPada: new Date().toISOString(),
-      metadata: workspace.metadata,
+      metadata: { ...workspace.metadata, ...metaDraft },
       metodeAktif: activeMethod,
       enginePerhitungan: calcResult.source || 'browser-js',
       kriteria: weightSummary.items,
-      hasilPerankingan: activeData.rankings.map((r) => ({
-        peringkat: r.rank,
-        kode: r.kode,
-        nama: r.nama,
-        posisi: r.posisi,
-        skor: Number(r.score.toFixed(6)),
-        keputusanPengelola: r.alternative.keputusan,
-        catatanManusia: r.alternative.catatanManusia,
-      })),
+      hasilPerankingan: activeData.rankings.map((r) => {
+        const alt = altById[r.id] || r.alternative;
+        return {
+          peringkat: r.rank,
+          kode: r.kode,
+          nama: r.nama,
+          posisi: r.posisi,
+          skor: Number(r.score.toFixed(6)),
+          keputusanPengelola: alt.keputusan,
+          catatanManusia: alt.catatanManusia,
+        };
+      }),
       perbandinganMetode: calcResult.comparison,
       validasiPengelola: checklist,
     };
@@ -131,8 +160,9 @@ export default function ReportTab({
               id="meta-judul"
               className="input"
               type="text"
-              value={workspace.metadata?.judulSeleksi || ''}
-              onChange={(e) => onUpdateMetadata({ judulSeleksi: e.target.value })}
+              value={metaDraft.judulSeleksi}
+              onChange={(e) => setMetaDraft((prev) => ({ ...prev, judulSeleksi: e.target.value }))}
+              onBlur={() => commitMetadataField('judulSeleksi')}
             />
           </div>
           <div className="field">
@@ -143,8 +173,11 @@ export default function ReportTab({
               id="meta-pic"
               className="input"
               type="text"
-              value={workspace.metadata?.penanggungJawab || ''}
-              onChange={(e) => onUpdateMetadata({ penanggungJawab: e.target.value })}
+              value={metaDraft.penanggungJawab}
+              onChange={(e) =>
+                setMetaDraft((prev) => ({ ...prev, penanggungJawab: e.target.value }))
+              }
+              onBlur={() => commitMetadataField('penanggungJawab')}
             />
           </div>
           <div className="field field-full">
@@ -155,8 +188,9 @@ export default function ReportTab({
               id="meta-catatan"
               className="input"
               type="text"
-              value={workspace.metadata?.catatanUmum || ''}
-              onChange={(e) => onUpdateMetadata({ catatanUmum: e.target.value })}
+              value={metaDraft.catatanUmum}
+              onChange={(e) => setMetaDraft((prev) => ({ ...prev, catatanUmum: e.target.value }))}
+              onBlur={() => commitMetadataField('catatanUmum')}
             />
           </div>
         </div>
@@ -168,9 +202,9 @@ export default function ReportTab({
             <BrandLogo />
             <div>
               <h2 className="panel-title">
-                Laporan Hasil Keputusan: {workspace.metadata?.judulSeleksi || 'Seleksi Calon Karyawan'}
+                Laporan Hasil Keputusan: {metaDraft.judulSeleksi || 'Seleksi Calon Karyawan'}
               </h2>
-              <p className="panel-subtitle">{workspace.metadata?.catatanUmum}</p>
+              <p className="panel-subtitle">{metaDraft.catatanUmum}</p>
             </div>
           </div>
           <span className="report-doc-code">SPK-{activeMethod.toUpperCase()}</span>
@@ -183,7 +217,7 @@ export default function ReportTab({
           </div>
           <div>
             <dt>Penanggung jawab</dt>
-            <dd>{workspace.metadata?.penanggungJawab || '-'}</dd>
+            <dd>{metaDraft.penanggungJawab || '-'}</dd>
           </div>
           <div>
             <dt>Cara hitung yang dipakai</dt>
@@ -256,7 +290,7 @@ export default function ReportTab({
                 <tbody>
                   {activeData.rankings.map((item) => {
                     const cmp = compById[item.id];
-                    const alt = item.alternative;
+                    const alt = altById[item.id] || item.alternative;
                     return (
                       <tr key={item.id} className={item.rank === 1 ? 'is-leader' : ''}>
                         <td className="col-num">#{item.rank}</td>

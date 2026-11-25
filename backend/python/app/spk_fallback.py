@@ -51,7 +51,11 @@ def _avg_cost(alt: Dict[str, Any], criteria: List[Dict[str, Any]]) -> float:
 def _sort_and_rank(rows: List[Dict[str, Any]], criteria: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     ordered = sorted(
         rows,
-        key=lambda r: (-round(r["score"], 12), _avg_cost(r["alternative"], criteria), r["kode"]),
+        key=lambda r: (
+            -round(r["score"], 12),
+            round(_avg_cost(r["alternative"], criteria), 12),
+            r["kode"],
+        ),
     )
     return [{**row, "rank": idx + 1} for idx, row in enumerate(ordered)]
 

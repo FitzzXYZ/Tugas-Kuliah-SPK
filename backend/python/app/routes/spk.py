@@ -1,4 +1,5 @@
-import time
+import math
+import uuid
 from fastapi import APIRouter, HTTPException
 
 from app.engine_bridge import find_rust_binary, run_calculation
@@ -41,15 +42,43 @@ def post_workspace_reset():
     return reset_workspace_data()
 
 
+def _default_criterion_value(criterion: dict) -> float:
+    opsi = criterion.get("opsi")
+    if isinstance(opsi, list) and opsi:
+        for opt in opsi:
+            if str(opt.get("label", "")).upper() == "S1":
+                return float(opt["nilai"])
+        return float(opsi[len(opsi) // 2]["nilai"])
+    return 7.0 if criterion.get("tipe") == "cost" else 75.0
+
+
+def _validate_alternative_scores(nilai: dict, criteria: list) -> None:
+    missing = [c["kode"] for c in criteria if c["id"] not in nilai]
+    if missing:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Nilai kriteria belum lengkap: {', '.join(missing)}.",
+        )
+    for c in criteria:
+        opsi = c.get("opsi")
+        if isinstance(opsi, list) and opsi:
+            val = float(nilai[c["id"]])
+            if not any(abs(float(opt["nilai"]) - val) < 1e-9 for opt in opsi):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Nilai kriteria {c['kode']} harus sesuai opsi skala yang tersedia.",
+                )
+
+
 @router.post("/criteria", response_model=Criterion, status_code=201)
 def create_criterion(payload: CriterionCreate):
     ws = load_workspace_data()
     if any(c["kode"].upper() == payload.kode for c in ws["criteria"]):
         raise HTTPException(status_code=409, detail=f"Kode kriteria {payload.kode} sudah digunakan.")
 
-    created = Criterion(id=f"c-{int(time.time() * 1000)}", **payload.model_dump()).model_dump()
+    created = Criterion(id=f"c-{uuid.uuid4().hex[:8]}", **payload.model_dump()).model_dump()
     ws["criteria"].append(created)
-    default_val = 7.0 if created["tipe"] == "cost" else 75.0
+    default_val = _default_criterion_value(created)
     for alt in ws["alternatives"]:
         alt["nilai"][created["id"]] = default_val
     save_workspace_data(ws)
@@ -90,13 +119,8 @@ def create_alternative(payload: AlternativeCreate):
     ws = load_workspace_data()
     if any(a["kode"].upper() == payload.kode for a in ws["alternatives"]):
         raise HTTPException(status_code=409, detail=f"Kode alternatif {payload.kode} sudah digunakan.")
-    missing = [c["kode"] for c in ws["criteria"] if c["id"] not in payload.nilai]
-    if missing:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Nilai kriteria belum lengkap: {', '.join(missing)}.",
-        )
-    created = Alternative(id=f"a-{int(time.time() * 1000)}", **payload.model_dump()).model_dump()
+    _validate_alternative_scores(payload.nilai, ws["criteria"])
+    created = Alternative(id=f"a-{uuid.uuid4().hex[:8]}", **payload.model_dump()).model_dump()
     ws["alternatives"].append(created)
     save_workspace_data(ws)
     return created
@@ -110,6 +134,7 @@ def update_alternative(alt_id: str, payload: AlternativeCreate):
         raise HTTPException(status_code=404, detail="Alternatif tidak ditemukan.")
     if any(a["kode"].upper() == payload.kode and a["id"] != alt_id for a in ws["alternatives"]):
         raise HTTPException(status_code=409, detail=f"Kode alternatif {payload.kode} sudah digunakan.")
+    _validate_alternative_scores(payload.nilai, ws["criteria"])
     updated = Alternative(id=alt_id, **payload.model_dump()).model_dump()
     ws["alternatives"][idx] = updated
     save_workspace_data(ws)
@@ -132,7 +157,7 @@ def update_weights(payload: WeightsUpdate):
     for c in ws["criteria"]:
         if c["id"] in payload.weights:
             val = float(payload.weights[c["id"]])
-            if val <= 0 or val > 100:
+            if not math.isfinite(val) or val <= 0 or val > 100:
                 raise HTTPException(status_code=422, detail=f"Bobot {c['kode']} harus antara 0 sampai 100.")
             c["bobot"] = round(val, 2)
     return save_workspace_data(ws)

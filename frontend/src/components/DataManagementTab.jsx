@@ -4,20 +4,12 @@ import {
   MIN_ALTERNATIVES,
   MIN_CRITERIA,
   formatCriterionValue,
+  getDefaultCriterionValue,
+  getInitials,
   validateAlternative,
   validateCriterion,
 } from '../models/spkEngine.js';
 import { EmptyState, IconDown, IconPlus, IconUp, IconWarn } from './StateViews.jsx';
-
-function getInitials(name) {
-  const parts = String(name || '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (parts.length === 0) return '??';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-}
 
 function nextCode(prefix, list) {
   let maxNum = 0;
@@ -30,9 +22,7 @@ function nextCode(prefix, list) {
 
 function defaultOptionValue(c) {
   if (!Array.isArray(c.opsi) || c.opsi.length === 0) return '';
-  const s1 = c.opsi.find((o) => o.label.toUpperCase() === 'S1');
-  if (s1) return String(s1.nilai);
-  return String(c.opsi[Math.floor(c.opsi.length / 2)].nilai);
+  return String(getDefaultCriterionValue(c));
 }
 
 function createEmptyAltForm(criteria, alternatives) {
@@ -66,8 +56,8 @@ function createEmptyCritForm(criteria) {
 export default function DataManagementTab({
   criteria,
   alternatives,
-  quickAddSignal,
-  requestedEdit,
+  dataIntent,
+  onConsumeIntent,
   onAddCriterion,
   onUpdateCriterion,
   onDeleteCriterion,
@@ -118,22 +108,20 @@ export default function DataManagementTab({
   }, [alternatives, editingAltId]);
 
   useEffect(() => {
-    if (quickAddSignal > 0) {
+    if (!dataIntent) return;
+    if (dataIntent.mode === 'add') {
       setEditingAltId(null);
       setAltErrors({});
       setAltForm(createEmptyAltForm(criteria, alternatives));
       setShowAltForm(true);
-    }
-  }, [quickAddSignal]);
-
-  useEffect(() => {
-    if (requestedEdit?.id && requestedEdit.seq > 0) {
-      const target = alternatives.find((a) => a.id === requestedEdit.id);
+    } else if (dataIntent.mode === 'edit' && dataIntent.id) {
+      const target = alternatives.find((a) => a.id === dataIntent.id);
       if (target) {
         handleEditAlt(target);
       }
     }
-  }, [requestedEdit?.seq]);
+    onConsumeIntent?.();
+  }, [dataIntent]);
 
   function handleAltSubmit(e) {
     e.preventDefault();

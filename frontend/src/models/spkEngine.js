@@ -42,6 +42,52 @@ export const DECISION_LABELS = {
   tolak: 'Tidak lolos',
 };
 
+export const WEIGHT_PRESETS = [
+  {
+    id: 'seimbang',
+    label: 'Seimbang (bawaan)',
+    shortLabel: 'Seimbang',
+    byCode: { C1: 20, C2: 20, C3: 25, C4: 20, C5: 15 },
+  },
+  {
+    id: 'tes',
+    label: 'Fokus tes dan wawancara',
+    shortLabel: 'Fokus tes',
+    byCode: { C1: 10, C2: 15, C3: 35, C4: 30, C5: 10 },
+  },
+  {
+    id: 'pengalaman',
+    label: 'Utamakan pengalaman',
+    shortLabel: 'Pengalaman',
+    byCode: { C1: 15, C2: 35, C3: 20, C4: 20, C5: 10 },
+  },
+  {
+    id: 'anggaran',
+    label: 'Utamakan hemat gaji',
+    shortLabel: 'Hemat gaji',
+    byCode: { C1: 15, C2: 15, C3: 20, C4: 15, C5: 35 },
+  },
+];
+
+export function getInitials(name) {
+  const parts = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return '??';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+export function getDefaultCriterionValue(criterion) {
+  if (Array.isArray(criterion?.opsi) && criterion.opsi.length > 0) {
+    const s1 = criterion.opsi.find((o) => String(o.label).toUpperCase() === 'S1');
+    if (s1) return Number(s1.nilai);
+    return Number(criterion.opsi[Math.floor(criterion.opsi.length / 2)].nilai);
+  }
+  return criterion?.tipe === 'cost' ? 7 : 75;
+}
+
 export function roundNum(value, decimals = 4) {
   const factor = 10 ** decimals;
   return Math.round((Number(value) || 0) * factor) / factor;
@@ -129,6 +175,13 @@ export function validateAlternative(input, criteria, existingAlternatives = [], 
     const num = Number(raw);
     if (raw === '' || raw === null || raw === undefined || !Number.isFinite(num) || num <= 0) {
       errors[`nilai.${c.id}`] = `Nilai ${c.kode} (${c.nama}) harus angka positif lebih dari 0.`;
+    } else if (
+      Array.isArray(c.opsi) &&
+      c.opsi.length > 0 &&
+      !c.opsi.some((opt) => Math.abs(Number(opt.nilai) - num) < 1e-9)
+    ) {
+      const allowed = c.opsi.map((opt) => `${opt.label}=${opt.nilai}`).join(', ');
+      errors[`nilai.${c.id}`] = `Nilai ${c.kode} (${c.nama}) harus sesuai skala: ${allowed}.`;
     } else {
       nilai[c.id] = roundNum(num, 4);
     }
@@ -150,22 +203,20 @@ export function validateAlternative(input, criteria, existingAlternatives = [], 
 }
 
 export function syncAlternativesWithCriteria(alternatives, criteria, newCriterion = null) {
-  const validIds = new Set(criteria.map((c) => c.id));
   return alternatives.map((alt) => {
     const nextNilai = {};
     for (const c of criteria) {
-      const existing = alt.nilai?.[c.id];
-      if (Number.isFinite(Number(existing)) && Number(existing) > 0) {
-        nextNilai[c.id] = Number(existing);
+      const existing = Number(alt.nilai?.[c.id]);
+      const hasOptions = Array.isArray(c.opsi) && c.opsi.length > 0;
+      const optionValid =
+        !hasOptions || c.opsi.some((opt) => Math.abs(Number(opt.nilai) - existing) < 1e-9);
+      if (Number.isFinite(existing) && existing > 0 && optionValid) {
+        nextNilai[c.id] = existing;
       } else if (newCriterion && c.id === newCriterion.id) {
-        nextNilai[c.id] = newCriterion.tipe === 'cost' ? 7 : 75;
+        nextNilai[c.id] = getDefaultCriterionValue(newCriterion);
       } else {
-        nextNilai[c.id] = c.tipe === 'cost' ? 7 : 75;
+        nextNilai[c.id] = getDefaultCriterionValue(c);
       }
-    }
-    // Pastikan kunci kriteria lama yang sudah dihapus tidak tersisa.
-    for (const key of Object.keys(nextNilai)) {
-      if (!validIds.has(key)) delete nextNilai[key];
     }
     return { ...alt, nilai: nextNilai };
   });
@@ -289,10 +340,17 @@ function averageCostValue(alt, criteria) {
 
 function sortAndRank(rows, criteria) {
   const sorted = [...rows].sort((a, b) => {
-    if (Math.abs(b.score - a.score) > 1e-12) return b.score - a.score;
-    const costDiff = averageCostValue(a.alternative, criteria) - averageCostValue(b.alternative, criteria);
-    if (Math.abs(costDiff) > 1e-12) return costDiff;
-    return a.alternative.kode.localeCompare(b.alternative.kode);
+    const scoreDiff = Math.round(b.score * 1e12) - Math.round(a.score * 1e12);
+    if (scoreDiff !== 0) return scoreDiff;
+    const costDiff =
+      Math.round(averageCostValue(a.alternative, criteria) * 1e12) -
+      Math.round(averageCostValue(b.alternative, criteria) * 1e12);
+    if (costDiff !== 0) return costDiff;
+    return a.alternative.kode < b.alternative.kode
+      ? -1
+      : a.alternative.kode > b.alternative.kode
+        ? 1
+        : 0;
   });
   return sorted.map((row, index) => ({
     ...row,
@@ -567,8 +625,9 @@ export function buildDecisionCsv(workspace, methodResult, activeMethod) {
     'Catatan Manusia',
   ];
 
+  const altById = Object.fromEntries(workspace.alternatives.map((a) => [a.id, a]));
   const rows = methodResult.rankings.map((item) => {
-    const alt = item.alternative;
+    const alt = altById[item.id] || item.alternative;
     const vals = workspace.criteria.map((c) => formatCriterionValue(c, alt.nilai[c.id]));
     return [
       item.rank,

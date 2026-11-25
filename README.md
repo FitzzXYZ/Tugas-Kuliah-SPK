@@ -33,16 +33,16 @@ Berangkat dari konsep **Management Support System (MSS)** (*Sharda, Delen, & Tur
 
 ## Fitur Utama (8 Ketentuan Proyek)
 
-| No | Ketentuan Minimum Proyek | Implementasi di Aplikasi | Lokasi Tab |
+| No | Ketentuan Minimum Proyek | Implementasi di Aplikasi | Lokasi Menu |
 | :-: | --- | --- | --- |
-| 1 | **Manajemen data alternatif (min. 4)** | CRUD calon karyawan lengkap, form nilai dinamis mengikuti kriteria aktif, pencarian, filter posisi, konfirmasi hapus, indikator batas `6/4`. | `01 Data dan kriteria` |
-| 2 | **Manajemen kriteria (min. 5)** | CRUD kriteria dengan atribut `benefit` / `cost`, satuan, bobot, sinkronisasi otomatis ke seluruh alternatif, indikator batas `5/5`. | `01 Data dan kriteria` |
-| 3 | **Pengaturan bobot kriteria** | Pengaturan langsung via slider & angka, distribusi proporsi bobot visual, indikator total `100%`, dan tombol **Normalisasi ke 100%**. | `02 Bobot dan metode` |
-| 4 | **Pemilihan metode SPK** | Pemilih metode aktif **SAW**, **WP**, dan **TOPSIS** lengkap dengan ringkasan cara kerja dan pratinjau rumus aktif. | `02 Bobot dan metode` |
-| 5 | **Proses perhitungan otomatis** | Recalculate otomatis saat data/bobot berubah + panel **Audit Perhitungan** (Matriks `X`, Normalisasi `R`, Terbobot / Vektor `S` / Solusi Ideal `A+` & `A-` serta Jarak `D+` & `D-`). | `03 Hitung dan peringkat` |
-| 6 | **Hasil perankingan** | Tabel peringkat terurut (`#1..#N`), skor 4 desimal, komparasi peringkat lintas 3 metode, serta kolom **Keputusan Pengelola & Catatan Manusia**. | `03 Hitung dan peringkat` |
-| 7 | **Grafik visualisasi** | 3 grafik SVG murni responsif bersumbu nol: peringkat skor metode aktif, komparasi 3 metode, dan profil keunggulan per kriteria antar 2 kandidat. | `04 Visualisasi` |
-| 8 | **Laporan hasil keputusan** | Lembar keputusan resmi siap **Cetak / Simpan PDF** (`@media print`), ekspor **CSV** (UTF-8 BOM untuk Excel) & **JSON**, plus checklist kualitas data & privasi MSS. | `05 Laporan keputusan` |
+| 1 | **Manajemen data alternatif (min. 4)** | CRUD calon karyawan (tampilan **Tabel** & **Kartu**), form nilai dinamis mengikuti kriteria & opsi jenjang pendidikan, pencarian, filter posisi, laci rincian kandidat, indikator batas `6/4`. | `Data dan kriteria` |
+| 2 | **Manajemen kriteria (min. 5)** | CRUD kriteria dengan atribut `benefit` / `cost`, satuan atau skala opsi (`SMP=1..S2=5`), bobot, sinkronisasi otomatis ke seluruh alternatif, indikator batas `5/5`. | `Data dan kriteria` |
+| 3 | **Pengaturan bobot kriteria** | Pengaturan langsung via *slider* & angka, *preset* skenario cepat (`Seimbang`, `Fokus tes`, `Pengalaman`, `Hemat gaji`), indikator total `100%`, dan tombol **Samakan ke 100%**. | `Prioritas dan metode` |
+| 4 | **Pemilihan metode SPK** | Pemilih metode aktif **SAW**, **WP**, dan **TOPSIS** lengkap dengan diagram skematik cara kerja dan pratinjau rumus matematika. | `Prioritas dan metode` |
+| 5 | **Proses perhitungan otomatis** | Recalculate otomatis saat data/bobot berubah + panel **Rincian Langkah Perhitungan** (Matriks `X`, Normalisasi `R`, Terbobot / Vektor `S` / Solusi Ideal `A+` & `A-` serta Jarak `D+` & `D-`). | `Peringkat dan keputusan` |
+| 6 | **Hasil perankingan** | Tabel peringkat terurut (`#1..#N`), skor 4 desimal, komparasi peringkat lintas 3 metode, filter status keputusan, serta kolom **Keputusan & Catatan Manusia**. | `Peringkat dan keputusan` |
+| 7 | **Grafik visualisasi** | Grafik batang peringkat skor, komparasi konsistensi 3 metode, perbandingan langsung 2 kandidat, diagram **Radar** profil kekuatan, serta **Heatmap** seluruh pelamar × kriteria. | `Grafik perbandingan` |
+| 8 | **Laporan hasil keputusan** | Lembar keputusan resmi siap **Cetak / Simpan PDF** (`@media print`), ekspor **CSV** (UTF-8 BOM untuk Excel) & **JSON**, plus checklist validasi kualitas data & privasi MSS. | `Laporan keputusan` |
 
 ---
 
@@ -63,10 +63,11 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    T1["01 Data & Kriteria"] --> T2["02 Bobot & Metode"]
-    T2 --> T3["03 Hitung & Peringkat"]
-    T3 --> T4["04 Visualisasi"]
-    T4 --> T5["05 Laporan Keputusan"]
+    T0["Dashboard Eksekutif"] --> T1["Data & Kriteria"]
+    T1 --> T2["Prioritas & Metode"]
+    T2 --> T3["Peringkat & Keputusan"]
+    T3 --> T4["Grafik Perbandingan"]
+    T4 --> T5["Laporan Keputusan"]
     T5 -.->|"Tinjau ulang (Iterasi MSS)"| T2
 ```
 
@@ -115,16 +116,16 @@ $$D^+_i = \sqrt{\sum_{j=1}^{n} (y_{ij} - A^+_j)^2}, \qquad D^-_i = \sqrt{\sum_{j
 
 ### Hasil Perankingan Dataset Ilustrasi Bawaan
 
-Kriteria bawaan: `C1` Skor Tes Teknis (`benefit`, 30%), `C2` Skor Wawancara (`benefit`, 20%), `C3` Pengalaman Kerja (`benefit`, 20%), `C4` Portofolio & Kompetensi (`benefit`, 15%), `C5` Ekspektasi Gaji (`cost`, 15%).
+Kriteria bawaan: `C1` Pendidikan (`benefit`, 20%, skala `SMP=1, SMA=2, D3=3, S1=4, S2=5`), `C2` Pengalaman (`benefit`, tahun, 20%), `C3` Nilai Tes Tulis (`benefit`, poin, 25%), `C4` Nilai Wawancara (`benefit`, poin, 20%), `C5` Gaji (`cost`, juta Rp, 15%).
 
 | Peringkat | Kode | Calon Karyawan | Posisi | Skor SAW | Skor WP | Skor TOPSIS |
 | :-: | :-: | --- | --- | --: | --: | --: |
-| **#1** | `A6` | Farhan Hakim | Fullstack Developer | `0.9281` | `0.1957` | `0.8265` |
-| #2 | `A2` | Bagas Nugroho | Backend Developer | `0.8644` | `0.1813` | `0.6363` |
-| #3 | `A1` | Alya Pratama | Frontend Developer | `0.8366` | `0.1726` | `0.4134` |
-| #4 | `A4` | Dimas Saputra | QA Engineer | `0.8013` | `0.1661` | `0.3811` |
-| #5 | `A3` | Citra Lestari | Frontend Developer | `0.7727` | `0.1478` | `0.2303` |
-| #6 | `A5` | Eka Putri | Backend Developer | `0.7068` | `0.1365` | `0.1945` |
+| **#1** | `A6` | Farhan Hakim | Fullstack Developer | `0.9325` | `0.2038` | `0.8509` |
+| #2 | `A2` | Bagas Nugroho | Backend Developer | `0.8746` | `0.1898` | `0.6861` |
+| #3 | `A1` | Alya Pratama | Frontend Developer | `0.8034` | `0.1722` | `0.4572` |
+| #4 | `A4` | Dimas Saputra | QA Engineer | `0.7816` | `0.1682` | `0.4445` |
+| #5 | `A3` | Citra Lestari | Frontend Developer | `0.7186` | `0.1422` | `0.2459` |
+| #6 | `A5` | Eka Putri | Backend Developer | `0.6308` | `0.1238` | `0.1768` |
 
 ---
 
@@ -136,15 +137,18 @@ Seleksi Calon Karyawan-SPK/
 │   ├── index.html                      # Entry HTML + font Familjen Grotesk, IBM Plex Sans, JetBrains Mono
 │   ├── package.json                    # Dependensi minimal (react, react-dom, vite)
 │   ├── vite.config.js                  # Dev server :5173 + proxy /api -> :8000
+│   ├── public/assets/                  # Aset visual editorial & favicon SVG
 │   ├── src/
-│   │   ├── main.jsx & App.jsx          # Bootstrap aplikasi, routing hash (#data..#laporan), state utama
-│   │   ├── styles/                     # tokens.css (OKLCH Cobalt) & app.css (termasuk @media print)
+│   │   ├── main.jsx & App.jsx          # Bootstrap aplikasi, routing hash (#dashboard..#laporan), state utama
+│   │   ├── styles/                     # tokens.css (OKLCH Shades of Pink) & app.css (termasuk @media print)
+│   │   ├── hooks/                      # useAnimatedNumber.js (interpolasi angka GPU-friendly)
 │   │   ├── data/sampleWorkspace.js     # Dataset ilustrasi 5 kriteria & 6 alternatif
-│   │   ├── models/spkEngine.js         # Logika murni SAW, WP, TOPSIS, validasi & ekspor CSV
-│   │   ├── services/spkApi.js          # Adapter mode lokal browser & REST API backend
-│   │   └── components/                 # HeaderTray, DataManagementTab, WeightsMethodTab,
-│   │                                   # CalculationRankingTab, VisualizationTab, ReportTab, StateViews
-│   └── tests/spkEngine.test.mjs        # Unit test Node built-in untuk seluruh rumus & edge cases
+│   │   ├── models/spkEngine.js         # Logika murni SAW, WP, TOPSIS, validasi, preset & ekspor CSV
+│   │   ├── services/spkApi.js          # Adapter mode lokal browser, offline fallback & REST API backend
+│   │   └── components/                 # AppShell, DashboardTab, DataManagementTab, WeightsMethodTab,
+│   │                                   # CalculationRankingTab, VisualizationTab, ReportTab, CandidateDrawer,
+│   │                                   # CandidateRadarChart, CriteriaHeatmap, MethodDiagrams, StateViews
+│   └── tests/spkEngine.test.mjs        # Unit test & SSR smoke test Node built-in
 │
 └── backend/                            # Backend terpisah Python + Rust
     ├── README.md                       # Dokumentasi kontrak endpoint REST API & panduan Rust
@@ -153,12 +157,12 @@ Seleksi Calon Karyawan-SPK/
     │   ├── pyproject.toml
     │   ├── app/
     │   │   ├── main.py                 # Konfigurasi FastAPI & CORS
-    │   │   ├── schemas.py              # Validasi skema Pydantic
-    │   │   ├── storage.py              # Baca/tulis file JSON atomik
+    │   │   ├── schemas.py              # Validasi skema & integritas Pydantic
+    │   │   ├── storage.py              # Baca/tulis file JSON atomik aman konkurensi
     │   │   ├── engine_bridge.py        # Jembatan subprocess ke binary Rust (+ fallback otomatis)
     │   │   ├── spk_fallback.py         # Engine SAW/WP/TOPSIS Python identik dengan Rust & JS
     │   │   └── routes/spk.py           # Endpoint /api/*
-    │   └── tests/test_api.py           # Pengujian API & paritas rumus (pytest)
+    │   └── tests/test_api.py           # Pengujian API, integritas, & paritas rumus (pytest)
     └── rust/                           # Crate komputasi inti spk-engine
         ├── Cargo.toml
         └── src/
@@ -238,12 +242,12 @@ Detail skema payload dapat dilihat di [backend/README.md](backend/README.md).
 ## Pengujian
 
 ```powershell
-# 1. Unit test model SPK Frontend (8 test) & production build
+# 1. Unit test model & render App Frontend (10 test) + production build
 cd frontend
 npm.cmd test
 npm.cmd run build
 
-# 2. Unit test REST API & validasi Backend Python (3 test)
+# 2. Unit test REST API & validasi Backend Python (4 test)
 cd ..\backend\python
 uv run pytest -v
 
@@ -253,8 +257,8 @@ cargo test
 ```
 
 Verifikasi yang telah lulus:
-- `frontend`: **8/8 unit test lulus** (SAW, WP, TOPSIS, *edge case* kandidat identik tanpa `NaN`, validasi duplikat & nilai `<= 0`, normalisasi bobot 100%, sinkronisasi kriteria, ekspor CSV BOM) dan `vite build` sukses.
-- `backend/python`: **3/3 `pytest` lulus** dan hasil numerik SAW, WP, TOPSIS cocok **persis hingga 6 angka desimal** dengan engine JavaScript.
+- `frontend`: **10/10 unit & SSR smoke test lulus** (SAW, WP, TOPSIS, *edge case* kandidat identik tanpa `NaN`, validasi duplikat/nilai `<= 0`/skala opsi Pendidikan, normalisasi bobot 100%, sinkronisasi kriteria, ekspor CSV BOM, kesamaan *seed* frontend-backend, serta *render* komponen `<App />`) dan `vite build` sukses.
+- `backend/python`: **4/4 `pytest` lulus** (termasuk uji simpan serentak dan validasi integritas `PUT /api/workspace`) dan hasil numerik SAW, WP, TOPSIS cocok **persis hingga 6 angka desimal** dengan engine JavaScript.
 
 ---
 

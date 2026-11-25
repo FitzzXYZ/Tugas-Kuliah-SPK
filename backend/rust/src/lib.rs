@@ -276,17 +276,15 @@ fn avg_cost(alt: &Alternative, criteria: &[Criterion]) -> f64 {
 
 fn rank_rows(mut rows: Vec<RankingRow>, criteria: &[Criterion]) -> Vec<RankingRow> {
     rows.sort_by(|a, b| {
-        if (b.score - a.score).abs() > 1e-12 {
-            b.score.partial_cmp(&a.score).unwrap_or(Ordering::Equal)
-        } else {
-            let ca = avg_cost(&a.alternative, criteria);
-            let cb = avg_cost(&b.alternative, criteria);
-            if (ca - cb).abs() > 1e-12 {
-                ca.partial_cmp(&cb).unwrap_or(Ordering::Equal)
-            } else {
-                a.kode.cmp(&b.kode)
-            }
-        }
+        let sb = (b.score * 1e12).round();
+        let sa = (a.score * 1e12).round();
+        sb.total_cmp(&sa)
+            .then_with(|| {
+                let ca = (avg_cost(&a.alternative, criteria) * 1e12).round();
+                let cb = (avg_cost(&b.alternative, criteria) * 1e12).round();
+                ca.total_cmp(&cb)
+            })
+            .then_with(|| a.kode.cmp(&b.kode))
     });
     for (idx, row) in rows.iter_mut().enumerate() {
         row.rank = idx + 1;

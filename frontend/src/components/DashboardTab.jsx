@@ -7,30 +7,14 @@ import {
   MIN_CRITERIA,
   VALID_DECISIONS,
   VALID_METHODS,
+  WEIGHT_PRESETS,
   detectDataIssues,
   getCandidateStrengths,
+  getInitials,
   getWeightSummary,
 } from '../models/spkEngine.js';
 import CandidateRadarChart from './CandidateRadarChart.jsx';
 import { EmptyState, IconCheck, IconPrint, IconWarn } from './StateViews.jsx';
-
-function getInitials(name) {
-  const parts = String(name || '')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (parts.length === 0) return '??';
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-}
-
-// Preset prioritas disesuaikan ke 5 kriteria: C1 Pendidikan, C2 Pengalaman, C3 Tes Tulis, C4 Wawancara, C5 Gaji.
-const QUICK_PRESETS = [
-  { id: 'seimbang', label: 'Seimbang', byCode: { C1: 20, C2: 20, C3: 25, C4: 20, C5: 15 } },
-  { id: 'tes', label: 'Fokus tes', byCode: { C1: 10, C2: 15, C3: 35, C4: 30, C5: 10 } },
-  { id: 'pengalaman', label: 'Pengalaman', byCode: { C1: 15, C2: 35, C3: 20, C4: 20, C5: 10 } },
-  { id: 'anggaran', label: 'Hemat gaji', byCode: { C1: 15, C2: 15, C3: 20, C4: 15, C5: 35 } },
-];
 
 export default function DashboardTab({
   workspace,
@@ -468,14 +452,14 @@ export default function DashboardTab({
             {hasDefaultCodes && (
               <div className="preset-row" style={{ marginBottom: 0 }}>
                 <span className="preset-label">Uji cepat:</span>
-                {QUICK_PRESETS.map((preset) => (
+                {WEIGHT_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
                     type="button"
                     className="key key--sm"
                     onClick={() => onApplyPreset(preset.byCode)}
                   >
-                    {preset.label}
+                    {preset.shortLabel}
                   </button>
                 ))}
               </div>

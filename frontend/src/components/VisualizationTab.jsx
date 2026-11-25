@@ -115,7 +115,9 @@ export default function VisualizationTab({
                     fontSize="11"
                     fontFamily="var(--font-outlier)"
                   >
-                    {activeMethod === 'wp' ? (ratio * axisMax).toFixed(2) : `${Math.round(ratio * 100)}`}
+                    {activeMethod === 'wp'
+                      ? `${Math.round(ratio * axisMax * 100)}%`
+                      : `${Math.round(ratio * 100)}`}
                   </text>
                 </g>
               );

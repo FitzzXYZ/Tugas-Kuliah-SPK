@@ -1,5 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import React from 'react';
+import { renderToString } from 'react-dom/server';
+import { createServer } from 'vite';
 
 import { SAMPLE_WORKSPACE } from '../src/data/sampleWorkspace.js';
 import {
@@ -90,11 +95,12 @@ test('validation rejects non-positive values, duplicate codes, and flags minimum
   assert.ok(badCrit.errors.bobot);
 
   const badAlt = validateAlternative(
-    { kode: 'A7', nama: 'Budi', posisi: 'QA', nilai: { c1: 80, c2: 75, c3: 0, c4: 70, c5: 7 } },
+    { kode: 'A7', nama: 'Budi', posisi: 'QA', nilai: { c1: 80, c2: 2, c3: 0, c4: 70, c5: 7 } },
     criteria,
     alternatives,
   );
   assert.equal(badAlt.valid, false);
+  assert.ok(badAlt.errors['nilai.c1']);
   assert.ok(badAlt.errors['nilai.c3']);
 
   const issues = detectDataIssues(alternatives.slice(0, 3), criteria.slice(0, 4));
@@ -110,6 +116,10 @@ test('normalizeCriteriaWeightsTo100 sums to exactly 100 and syncAlternativesWith
   const newCrit = { id: 'c6', kode: 'C6', nama: 'Sertifikasi', tipe: 'benefit', bobot: 10, satuan: 'poin' };
   const synced = syncAlternativesWithCriteria(alternatives, [...criteria, newCrit], newCrit);
   assert.equal(synced[0].nilai.c6, 75);
+
+  const brokenAlt = { ...alternatives[0], nilai: { ...alternatives[0].nilai, c1: 75 } };
+  const repaired = syncAlternativesWithCriteria([brokenAlt], criteria);
+  assert.equal(repaired[0].nilai.c1, 4);
 });
 
 test('buildDecisionCsv generates valid BOM-prefixed CSV with headers and rows', () => {
@@ -121,5 +131,28 @@ test('buildDecisionCsv generates valid BOM-prefixed CSV with headers and rows', 
   const strengths = getCandidateStrengths('a6', criteria, saw, 2);
   assert.equal(strengths.length, 2);
   assert.equal(strengths[0].norm, 1);
+});
+
+test('frontend SAMPLE_WORKSPACE matches backend workspace.sample.json exactly', () => {
+  const backendSeed = JSON.parse(
+    readFileSync(new URL('../../backend/data/workspace.sample.json', import.meta.url), 'utf-8'),
+  );
+  assert.deepEqual(SAMPLE_WORKSPACE, backendSeed);
+});
+
+test('App component renders without runtime ReferenceError on initial mount', async () => {
+  const server = await createServer({
+    root: fileURLToPath(new URL('..', import.meta.url)),
+    server: { middlewareMode: true },
+    appType: 'custom',
+    logLevel: 'silent',
+  });
+  try {
+    const { default: App } = await server.ssrLoadModule('/src/App.jsx');
+    const html = renderToString(React.createElement(App));
+    assert.ok(html.includes('SPK Seleksi'));
+  } finally {
+    await server.close();
+  }
 });
 

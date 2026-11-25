@@ -1,30 +1,12 @@
-import React from 'react';
-import { METHOD_INFO, VALID_METHODS, getWeightSummary } from '../models/spkEngine.js';
+import React, { useState } from 'react';
+import {
+  METHOD_INFO,
+  VALID_METHODS,
+  WEIGHT_PRESETS,
+  getWeightSummary,
+} from '../models/spkEngine.js';
 import MethodDiagram from './MethodDiagrams.jsx';
 import { IconCheck, IconDown, IconUp, IconWarn } from './StateViews.jsx';
-
-const WEIGHT_PRESETS = [
-  {
-    id: 'seimbang',
-    label: 'Seimbang (bawaan)',
-    byCode: { C1: 20, C2: 20, C3: 25, C4: 20, C5: 15 },
-  },
-  {
-    id: 'tes',
-    label: 'Fokus tes dan wawancara',
-    byCode: { C1: 10, C2: 15, C3: 35, C4: 30, C5: 10 },
-  },
-  {
-    id: 'pengalaman',
-    label: 'Utamakan pengalaman',
-    byCode: { C1: 15, C2: 35, C3: 20, C4: 20, C5: 10 },
-  },
-  {
-    id: 'anggaran',
-    label: 'Utamakan hemat gaji',
-    byCode: { C1: 15, C2: 15, C3: 20, C4: 15, C5: 35 },
-  },
-];
 
 export default function WeightsMethodTab({
   criteria,
@@ -35,11 +17,21 @@ export default function WeightsMethodTab({
   onNormalizeWeights,
   onNextTab,
 }) {
+  const [weightDrafts, setWeightDrafts] = useState({});
   const summary = getWeightSummary(criteria);
   const currentMethodInfo = METHOD_INFO[activeMethod];
   const hasDefaultCodes = ['C1', 'C2', 'C3', 'C4', 'C5'].every((code) =>
     criteria.some((c) => c.kode.toUpperCase() === code),
   );
+
+  function clearDraft(id) {
+    setWeightDrafts((prev) => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }
 
   return (
     <div className="stack-lg">
@@ -57,7 +49,10 @@ export default function WeightsMethodTab({
               type="button"
               className="key"
               disabled={summary.isExact100}
-              onClick={onNormalizeWeights}
+              onClick={() => {
+                setWeightDrafts({});
+                onNormalizeWeights();
+              }}
             >
               Samakan ke 100%
             </button>
@@ -75,7 +70,10 @@ export default function WeightsMethodTab({
                 key={preset.id}
                 type="button"
                 className="key key--sm"
-                onClick={() => onApplyPreset(preset.byCode)}
+                onClick={() => {
+                  setWeightDrafts({});
+                  onApplyPreset(preset.byCode);
+                }}
               >
                 {preset.label}
               </button>
@@ -138,7 +136,10 @@ export default function WeightsMethodTab({
                       max="60"
                       step="1"
                       value={Math.min(60, Math.max(1, Number(item.raw) || 1))}
-                      onChange={(e) => onChangeWeight(item.id, Number(e.target.value))}
+                      onChange={(e) => {
+                        clearDraft(item.id);
+                        onChangeWeight(item.id, Number(e.target.value));
+                      }}
                     />
                   </td>
                   <td className="col-num" style={{ width: '7.5rem' }}>
@@ -152,13 +153,16 @@ export default function WeightsMethodTab({
                       min="0.5"
                       max="100"
                       step="0.5"
-                      value={item.raw}
+                      value={weightDrafts[item.id] ?? String(item.raw)}
                       onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (Number.isFinite(val) && val > 0) {
+                        const raw = e.target.value;
+                        setWeightDrafts((prev) => ({ ...prev, [item.id]: raw }));
+                        const val = Number(raw);
+                        if (raw.trim() !== '' && Number.isFinite(val) && val > 0 && val <= 100) {
                           onChangeWeight(item.id, val);
                         }
                       }}
+                      onBlur={() => clearDraft(item.id)}
                     />
                   </td>
                   <td className="col-num">{item.percent.toFixed(1)}%</td>
